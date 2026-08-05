@@ -1,5 +1,7 @@
-export const accessCode = '4784';
+﻿export const accessCode = '4784';
 
+export const assetPath = (path: string) =>
+  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 export const profile = {
   name: '梅俊生',
   headline: '内容运营 / 直播运营 / 新媒体增长',
@@ -126,4 +128,6 @@ export const skillMatrix = [
   { label: '电商协同', x: 78, y: 70, bodyX: 67, bodyY: 76, axis: '商业 / 转化', detail: '协同店铺、商品、内容和转化路径，把内容与商业目标连接起来。' },
   { label: '复盘分析', x: 63, y: 82, bodyX: 35, bodyY: 78, axis: '脚步 / 复盘', detail: '根据数据反馈判断内容方向，优化选题、发布时间和表达方式。' },
 ] as const;
+
+
 
