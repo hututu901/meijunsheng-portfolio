@@ -734,7 +734,7 @@ function App() {
                     <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                     <p>
                       如点击
-                      <a href={assetPath('/resume/梅俊生-简历投递版.docx')} download>查看/下载简历</a>
+                      <a href={assetPath('/resume/梅俊生简历.pdf')} download>查看/下载简历</a>
                       、
                       <button type="button" onClick={copyCurrentUrl}>{urlCopied ? '已复制网址' : '复制网址'}</button>
                       以及
