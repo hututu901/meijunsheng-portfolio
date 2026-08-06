@@ -622,7 +622,7 @@ function App() {
                 <div className="section-title">
                   <span>Selected Works</span>
                   <h2>精选作品</h2>
-                  <p className="loading-network-note">加载速度与网速相关，请稍后</p>
+                  
                 </div>
                 <div className="cloud-actions">
                   <a href={cloudLink} target="_blank" rel="noreferrer">
@@ -636,6 +636,7 @@ function App() {
                 </div>
               </div>
               <div className="film-desk">
+                <p className="preview-network-note">加载速度与网速相关，请稍后</p>
                 <div className={`featured-work preview-stage${featuredWork ? ' has-selection' : ' is-empty'}${workPreviewLoading ? ' is-loading-preview' : ''}`} aria-label={featuredWork ? `静音预览${featuredWork.title}` : '预览区'}>
                   <span className="cover-placeholder" aria-hidden="true" />
                   {/* Keep the preview stage neutral until the selected video is ready. */}
@@ -691,10 +692,11 @@ function App() {
               <div className="ai-page-intro">
                 <div className="section-title"><span>AI Portfolio</span><h2>AI 作品集</h2></div>
                 <p>从提示词到成片，把一次创作拆成可见的工作流程。</p>
-                <p className="loading-network-note">加载速度与网速相关，请稍后</p>
+                
                 <p className="ai-credit-line">{siteConfig.aiSubtitle}</p>
               </div>
               <div className="ai-portfolio-layout">
+                <p className="preview-network-note ai-preview-network-note">加载速度与网速相关，请稍后</p>
                 <div className="ai-preview-window" aria-live="polite">
                   <div className="ai-preview-topline"><span>PREVIEW / {activeAiPreview ? activeAiPreview.toUpperCase() : 'SELECT A WORK'}</span><i /></div>
                   {activeAiPreview === 'detail' ? (
