@@ -1,10 +1,61 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 type SnakeDirection = 'up' | 'down' | 'left' | 'right';
 type SnakeCell = { x: number; y: number };
 import { ArrowUpRight, Copy, LockKeyhole, X } from 'lucide-react';
 import { accessCode, aiPortfolio, assetPath, cloudLink, experience, profile, skillMatrix, works } from './data';
 
+type AdminWork = {
+  title: string;
+  category: string;
+  description: string;
+  src: string;
+  cover: string;
+};
+
+type AdminExperience = {
+  company: string;
+  role: string;
+  period: string;
+  keyword: string;
+  summary: string;
+};
+
+type AdminConfig = {
+  profile: {
+    name: string;
+    headline: string;
+    statement: string;
+  };
+  aiSubtitle: string;
+  works: AdminWork[];
+  experience: AdminExperience[];
+};
+
+const adminPassword = '@m7498';
+const adminStorageKey = 'meijunsheng-portfolio-admin-v1';
+const defaultAdminConfig: AdminConfig = {
+  profile: {
+    name: profile.name,
+    headline: profile.headline,
+    statement: profile.statement,
+  },
+  aiSubtitle: '整个网页开发及内容由 Codex、ChatGPT、WorkBuddy 以及豆包共同完成',
+  works: works.map(({ title, category, description, src, cover }) => ({ title, category, description, src, cover })),
+  experience: experience.map(({ company, role, period, keyword, summary }) => ({ company, role, period, keyword, summary })),
+};
+
+const readAdminConfig = (): AdminConfig => {
+  try {
+    const saved = window.localStorage.getItem(adminStorageKey);
+    if (saved) return { ...defaultAdminConfig, ...JSON.parse(saved) } as AdminConfig;
+  } catch {
+    // Local storage may be unavailable in private browsing.
+  }
+  return defaultAdminConfig;
+};
+
+const mediaPath = (path: string) => /^(data:|https?:|blob:)/i.test(path) ? path : assetPath(path);
 function App() {
   const [code, setCode] = useState('');
   const [unlocked, setUnlocked] = useState(false);
@@ -28,13 +79,23 @@ function App() {
   const [snakeScore, setSnakeScore] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [activeAiPreview, setActiveAiPreview] = useState<'detail' | 'prompt' | 'article' | null>(null);
+  const [siteConfig, setSiteConfig] = useState<AdminConfig>(readAdminConfig);
+  const [adminDraft, setAdminDraft] = useState<AdminConfig>(readAdminConfig);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminNotice, setAdminNotice] = useState('');
   const pageIds = ['home', 'about', 'experience', 'skills', 'works', 'ai', 'chat'];
   const specialPageIndex: Record<string, number> = { eye: 7 };
   const unlockRef = useRef<HTMLButtonElement | null>(null);
   const featuredPreviewRef = useRef<HTMLVideoElement | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
   const snakeBoardRef = useRef<HTMLDivElement | null>(null);
-  const featuredWork = activeWorkPreview === null ? null : works[activeWorkPreview];
+  const displayProfile = { ...profile, ...siteConfig.profile };
+  const displayWorks = works.map((work, index) => ({ ...work, ...(siteConfig.works[index] ?? {}) }));
+  const displayExperience = experience.map((item, index) => ({ ...item, ...(siteConfig.experience[index] ?? {}) }));
+  const featuredWork = activeWorkPreview === null ? null : displayWorks[activeWorkPreview];
+  const featuredSrc = featuredWork?.src;
 
   useEffect(() => {
     if (!unlocked) return;
@@ -90,7 +151,7 @@ function App() {
 
   useEffect(() => {
     const video = featuredPreviewRef.current;
-    if (!featuredWork || !video) return;
+    if (!featuredSrc || !video) return;
 
     video.muted = true;
     video.controls = false;
@@ -101,7 +162,7 @@ function App() {
       .then(() => setWorkPreviewLoading(false))
       .catch(() => setWorkPreviewLoading(false));
     return () => window.clearTimeout(loadingTimer);
-  }, [featuredWork]);
+  }, [featuredSrc]);
 
   useEffect(() => {
     if (pageIndex !== 6) return;
@@ -256,6 +317,74 @@ function App() {
     setStatus('error');
   };
 
+  const openAdmin = () => {
+    setAdminOpen(true);
+    setAdminUnlocked(false);
+    setAdminPasswordInput('');
+    setAdminNotice('');
+  };
+
+  const unlockAdmin = () => {
+    if (adminPasswordInput === adminPassword) {
+      setAdminUnlocked(true);
+      setAdminDraft(siteConfig);
+      setAdminNotice('已解锁编辑器');
+    } else {
+      setAdminNotice('密码不正确');
+    }
+  };
+
+  const saveAdmin = () => {
+    setSiteConfig(adminDraft);
+    window.localStorage.setItem(adminStorageKey, JSON.stringify(adminDraft));
+    setAdminNotice('已保存到当前浏览器');
+  };
+
+  const exportAdmin = () => {
+    const blob = new Blob([JSON.stringify(adminDraft, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'meijunsheng-portfolio-config.json';
+    link.click();
+    URL.revokeObjectURL(url);
+    setAdminNotice('配置文件已导出');
+  };
+
+  const resetAdmin = () => {
+    setAdminDraft(JSON.parse(JSON.stringify(defaultAdminConfig)) as AdminConfig);
+    setAdminNotice('已恢复默认内容，点击保存后生效');
+  };
+
+  const updateProfileDraft = (field: keyof AdminConfig['profile'], value: string) => {
+    setAdminDraft((current) => ({ ...current, profile: { ...current.profile, [field]: value } }));
+  };
+
+  const updateExperienceDraft = (index: number, field: keyof AdminExperience, value: string) => {
+    setAdminDraft((current) => ({
+      ...current,
+      experience: current.experience.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const updateWorkDraft = (index: number, field: keyof AdminWork, value: string) => {
+    setAdminDraft((current) => ({
+      ...current,
+      works: current.works.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const uploadWorkCover = (index: number, file?: File) => {
+    if (!file) return;
+    if (file.size > 2_500_000) {
+      setAdminNotice('图片建议控制在 2.5MB 以内');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => updateWorkDraft(index, 'cover', String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
   const copyCloudLink = async () => {
     try {
       await navigator.clipboard.writeText(cloudLink);
@@ -294,18 +423,6 @@ function App() {
     if (index === activeWorkPreview) return;
     setWorkPreviewLoading(true);
     setActiveWorkPreview(index);
-    window.setTimeout(() => setWorkPreviewLoading(false), 1100);
-    window.setTimeout(() => {
-      const video = featuredPreviewRef.current;
-      if (!video) return;
-      video.muted = true;
-      video.controls = false;
-      video.load();
-      video.currentTime = 0;
-      void video.play()
-        .then(() => setWorkPreviewLoading(false))
-        .catch(() => setWorkPreviewLoading(false));
-    }, 180);
   };
 
   const playFeaturedFullscreen = async () => {
@@ -329,7 +446,7 @@ function App() {
   };
 
   const quickReplyMap = {
-    info: { question: '个人信息', answer: `${profile.name}，${profile.headline}。${profile.intro}` },
+    info: { question: '个人信息', answer: `${displayProfile.name}，${displayProfile.headline}。${displayProfile.intro}` },
     contact: { question: '联系方式', answer: '电话：15794454784。' },
     hobby: { question: '你的爱好', answer: '我平时喜欢观察内容趋势、拍摄剪辑、研究镜头语言，也会持续拆解优秀账号的表达方式。' },
   } as const;
@@ -345,9 +462,9 @@ function App() {
       );
     }, 980 + item.answer.length * 18);
   };
-  const activeExperienceItem = experience[activeExperience];
+  const activeExperienceItem = displayExperience[activeExperience];
   const activeSkillItem = skillMatrix[activeSkill];
-  const experienceWaveItems = [experience[2], experience[1], experience[0]];
+  const experienceWaveItems = [displayExperience[2], displayExperience[1], displayExperience[0]];
 
   return (
     <div className={`site-shell${unlocked ? ' is-unlocked' : ''}`}>
@@ -387,9 +504,9 @@ function App() {
               </div>
               <div className="about-copy">
                 <p className="micro-copy">About me</p>
-                <h2>{profile.name}</h2>
-                <p className="role-line">{profile.headline}</p>
-                <p className="statement">{profile.statement}</p>
+                <h2>{displayProfile.name}</h2>
+                <p className="role-line">{displayProfile.headline}</p>
+                <p className="statement">{displayProfile.statement}</p>
                 <div className="about-signal-panel" aria-label="个人能力数据概览">
                   <article className="signal-main">
                     <span>Experience</span>
@@ -449,7 +566,7 @@ function App() {
                   </svg>
                   <div className="wave-node-layer">
                     {experienceWaveItems.map((item) => {
-                      const originalIndex = experience.findIndex((experienceItem) => experienceItem.company === item.company);
+                      const originalIndex = displayExperience.findIndex((experienceItem) => experienceItem.company === item.company);
                       const waveIndex = experienceWaveItems.findIndex((experienceItem) => experienceItem.company === item.company);
                       return (
                         <button
@@ -520,7 +637,7 @@ function App() {
               <div className="film-desk">
                 <div className={`featured-work preview-stage${featuredWork ? ' has-selection' : ' is-empty'}${workPreviewLoading ? ' is-loading-preview' : ''}`} aria-label={featuredWork ? `静音预览${featuredWork.title}` : '预览区'}>
                   <span className="cover-placeholder" aria-hidden="true" />
-                  {featuredWork ? <img className="stage-cover-image" src={assetPath(featuredWork.cover)} alt="" aria-hidden="true" /> : null}
+                  {/* Keep the preview stage neutral until the selected video is ready. */}
                   <span className="preview-zone-label">预览区</span>
                   {featuredWork ? (
                     <>
@@ -528,11 +645,10 @@ function App() {
                         ref={featuredPreviewRef}
                         className="stage-preview-video"
                         key={featuredWork.src}
-                        src={assetPath(featuredWork.src)}
+                        src={mediaPath(featuredWork.src)}
                         muted
                         loop
                         playsInline
-                        poster={assetPath(featuredWork.cover)}
                         preload="auto"
                         onLoadStart={() => setWorkPreviewLoading(true)}
                         onLoadedMetadata={() => setWorkPreviewLoading(false)}
@@ -541,6 +657,7 @@ function App() {
                         onPlay={() => setWorkPreviewLoading(false)}
                         onPlaying={() => setWorkPreviewLoading(false)}
                         onWaiting={() => setWorkPreviewLoading(true)}
+                        onError={() => setWorkPreviewLoading(false)}
                       />
                       {workPreviewLoading ? <span className="preview-loading-indicator" aria-live="polite">加载中</span> : null}
                       <span className="film-count">Film {String((activeWorkPreview ?? 0) + 1).padStart(2, '0')} / 06</span>
@@ -554,7 +671,7 @@ function App() {
                   ) : null}
                 </div>
                 <div className="works-grid thumbnail-rail">
-                  {works.map((work, index) => (
+                  {displayWorks.map((work, index) => (
                     <button
                       className={`work-card${activeWorkPreview === index ? ' is-active' : ''}`}
                       type="button"
@@ -563,13 +680,8 @@ function App() {
                       onMouseEnter={() => selectWorkPreview(index)}
                       onFocus={() => selectWorkPreview(index)}
                     >
-                      <span className="cover-placeholder" aria-hidden="true" />
-                      <img className="work-cover-image" src={assetPath(work.cover)} alt="" aria-hidden="true" />
                       <span className="film-mini-index">0{index + 1}</span>
-                      <div>
-                        <p>{work.category}</p>
-                        <h3>{work.title}</h3>
-                      </div>
+                      <span className="work-cover-title">{work.title}</span>
                     </button>
                   ))}
                 </div>
@@ -580,6 +692,7 @@ function App() {
               <div className="ai-page-intro">
                 <div className="section-title"><span>AI Portfolio</span><h2>AI 作品集</h2></div>
                 <p>从提示词到成片，把一次创作拆成可见的工作流程。</p>
+                <p className="ai-credit-line">{siteConfig.aiSubtitle}</p>
               </div>
               <div className="ai-portfolio-layout">
                 <div className="ai-preview-window" aria-live="polite">
@@ -655,7 +768,10 @@ function App() {
                   </div>
                   <div className="wechat-input-line">
                     <span>输入消息...</span>
-                    <button className="eye-return-home" type="button" onClick={() => { setEyeLocked(false); jumpToPage('home'); }}>返回首页</button>
+                    <div className="chat-footer-actions">
+                      <button className="developer-entry-button" type="button" onClick={openAdmin}>开发者入口</button>
+                      <button className="eye-return-home" type="button" onClick={() => { setEyeLocked(false); jumpToPage('home'); }}>返回首页</button>
+                    </div>
                   </div>
                 </footer>
               </div>
@@ -698,6 +814,37 @@ function App() {
                 </div>
               </div>
             </section>
+            {adminOpen ? (
+              <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="开发者内容管理">
+                <div className="admin-panel">
+                  <header className="admin-header">
+                    <div><span>Developer workspace</span><h2>内容管理</h2></div>
+                    <button type="button" className="admin-close" onClick={() => setAdminOpen(false)} aria-label="关闭管理后台"><X size={20} /></button>
+                  </header>
+                  {!adminUnlocked ? (
+                    <form className="admin-lock" onSubmit={(event) => { event.preventDefault(); unlockAdmin(); }}>
+                      <p>只修改文字与素材，不改变页面结构和动效。</p>
+                      <label>管理密码<input autoFocus type="password" value={adminPasswordInput} onChange={(event) => setAdminPasswordInput(event.target.value)} placeholder="输入密码" /></label>
+                      <button type="submit">进入编辑器</button>
+                      {adminNotice ? <small>{adminNotice}</small> : null}
+                    </form>
+                  ) : (
+                    <div className="admin-editor">
+                      <div className="admin-editor-note">静态 GitHub Pages 会把修改保存到当前浏览器。需要迁移时请导出配置文件。</div>
+                      <section className="admin-section"><h3>个人信息</h3><div className="admin-fields">
+                        <label>姓名<input value={adminDraft.profile.name} onChange={(event) => updateProfileDraft('name', event.target.value)} /></label>
+                        <label>职业标题<input value={adminDraft.profile.headline} onChange={(event) => updateProfileDraft('headline', event.target.value)} /></label>
+                        <label className="admin-wide">个人介绍<textarea value={adminDraft.profile.statement} onChange={(event) => updateProfileDraft('statement', event.target.value)} /></label>
+                      </div></section>
+                      <section className="admin-section"><h3>工作经历</h3>{adminDraft.experience.map((item, index) => <fieldset className="admin-record" key={`${item.company}-${index}`}><legend>经历 {index + 1}</legend><div className="admin-fields"><label>公司<input value={item.company} onChange={(event) => updateExperienceDraft(index, 'company', event.target.value)} /></label><label>岗位<input value={item.role} onChange={(event) => updateExperienceDraft(index, 'role', event.target.value)} /></label><label>时间<input value={item.period} onChange={(event) => updateExperienceDraft(index, 'period', event.target.value)} /></label><label>关键词<input value={item.keyword} onChange={(event) => updateExperienceDraft(index, 'keyword', event.target.value)} /></label><label className="admin-wide">工作内容<textarea value={item.summary} onChange={(event) => updateExperienceDraft(index, 'summary', event.target.value)} /></label></div></fieldset>)}</section>
+                      <section className="admin-section"><h3>作品与素材</h3>{adminDraft.works.map((work, index) => <fieldset className="admin-record" key={`${work.src}-${index}`}><legend>作品 {String(index + 1).padStart(2, '0')}</legend><div className="admin-fields"><label>作品名<input value={work.title} onChange={(event) => updateWorkDraft(index, 'title', event.target.value)} /></label><label>分类<input value={work.category} onChange={(event) => updateWorkDraft(index, 'category', event.target.value)} /></label><label>视频地址<input value={work.src} onChange={(event) => updateWorkDraft(index, 'src', event.target.value)} /></label><label>封面地址<input value={work.cover.startsWith('data:') ? '已上传本地封面' : work.cover} onChange={(event) => updateWorkDraft(index, 'cover', event.target.value)} /></label><label className="admin-wide">说明<textarea value={work.description} onChange={(event) => updateWorkDraft(index, 'description', event.target.value)} /></label><label className="admin-file">上传封面<input type="file" accept="image/*" onChange={(event) => uploadWorkCover(index, event.target.files?.[0])} /></label></div></fieldset>)}</section>
+                      <section className="admin-section"><h3>AI 作品集</h3><label className="admin-wide">副标题<input value={adminDraft.aiSubtitle} onChange={(event) => setAdminDraft((current) => ({ ...current, aiSubtitle: event.target.value }))} /></label></section>
+                      <div className="admin-actions"><button type="button" onClick={saveAdmin}>保存修改</button><button type="button" onClick={exportAdmin}>导出配置</button><button type="button" className="admin-muted-button" onClick={resetAdmin}>恢复默认</button>{adminNotice ? <span>{adminNotice}</span> : null}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
             {selectedWork ? (
               <div className="video-modal" role="dialog" aria-modal="true" aria-label={selectedWork.title}>
                 <button className="modal-backdrop" type="button" onClick={() => setSelectedWork(null)} aria-label="关闭预览" />
@@ -709,7 +856,7 @@ function App() {
                     </div>
                     <button type="button" onClick={() => setSelectedWork(null)} aria-label="关闭预览"><X size={20} /></button>
                   </div>
-                  <video src={assetPath(selectedWork.src)} controls autoPlay playsInline controlsList="nodownload noplaybackrate" />
+                  <video src={mediaPath(selectedWork.src)} controls autoPlay playsInline controlsList="nodownload noplaybackrate" />
                 </div>
               </div>
             ) : null}
@@ -721,66 +868,3 @@ function App() {
 }
 
 export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
