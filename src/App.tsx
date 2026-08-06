@@ -223,7 +223,20 @@ function App() {
       return Boolean(rect && Math.abs(rect.top) < 120);
     };
 
-    document.documentElement.classList.toggle('is-eye-locked', eyeLocked || pageIndex === 7);
+    const eyeIsLocked = eyeLocked || pageIndex === 7;
+    document.documentElement.classList.toggle('is-eye-locked', eyeIsLocked);
+
+    const keepEyePinned = () => {
+      if (!eyeIsLocked) return;
+      const eye = document.getElementById('eye');
+      if (!eye) return;
+      const offset = eye.getBoundingClientRect().top;
+      if (Math.abs(offset) > 1) {
+        window.scrollBy({ top: offset, behavior: 'instant' as ScrollBehavior });
+      }
+    };
+
+    keepEyePinned();
 
     const blockEyePointer = (event: Event) => {
       if (!isEyeVisible()) return;
@@ -267,11 +280,13 @@ function App() {
     blockedMouseEvents.forEach((eventName) => document.addEventListener(eventName, blockEyePointer, true));
     document.addEventListener('keydown', onKeyDown, true);
     window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('scroll', keepEyePinned, { passive: true });
     return () => {
       document.documentElement.classList.remove('is-eye-locked');
       blockedMouseEvents.forEach((eventName) => document.removeEventListener(eventName, blockEyePointer, true));
       document.removeEventListener('keydown', onKeyDown, true);
       window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('scroll', keepEyePinned);
     };
   }, [unlocked, eyeLocked, pageIndex]);
 
@@ -409,9 +424,9 @@ function App() {
     const nextIndex = pageIds.indexOf(id);
     const specialIndex = specialPageIndex[id];
     if (specialIndex !== undefined) {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'start' });
       if (id === 'eye') setEyeLocked(true);
       setPageIndex(specialIndex);
-      window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
       return;
     }
     setEyeLocked(false);

@@ -6458,3 +6458,9 @@ body,
     top: -24px;
   }
 }
+/* The eye-relief game is an explicit, locked destination. */
+html.is-eye-locked,
+html.is-eye-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
