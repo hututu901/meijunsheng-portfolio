@@ -6363,3 +6363,25 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .preview-loading-indicator::after { animation: none; }
 }
+.loading-network-note {
+  margin: 16px 0 0;
+  color: #9aa0a8;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  font-weight: 800;
+}
+
+.works-head .loading-network-note {
+  max-width: 320px;
+}
+
+.ai-page-intro .loading-network-note {
+  max-width: 320px;
+  margin-top: 14px;
+}
+
+@media (max-width: 640px) {
+  .loading-network-note {
+    font-size: 0.74rem;
+  }
+}

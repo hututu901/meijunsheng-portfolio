@@ -622,6 +622,7 @@ function App() {
                 <div className="section-title">
                   <span>Selected Works</span>
                   <h2>精选作品</h2>
+                  <p className="loading-network-note">加载速度与网速相关，请稍后</p>
                 </div>
                 <div className="cloud-actions">
                   <a href={cloudLink} target="_blank" rel="noreferrer">
@@ -690,17 +691,18 @@ function App() {
               <div className="ai-page-intro">
                 <div className="section-title"><span>AI Portfolio</span><h2>AI 作品集</h2></div>
                 <p>从提示词到成片，把一次创作拆成可见的工作流程。</p>
+                <p className="loading-network-note">加载速度与网速相关，请稍后</p>
                 <p className="ai-credit-line">{siteConfig.aiSubtitle}</p>
               </div>
               <div className="ai-portfolio-layout">
                 <div className="ai-preview-window" aria-live="polite">
                   <div className="ai-preview-topline"><span>PREVIEW / {activeAiPreview ? activeAiPreview.toUpperCase() : 'SELECT A WORK'}</span><i /></div>
                   {activeAiPreview === 'detail' ? (
-                    <div className="ai-scroll-preview ai-image-stack" tabIndex={0} aria-label="电商详情页长图预览">{aiPortfolio.detailImages.map((src, index) => <img key={src} src={assetPath(src)} alt={`电商详情页第${index + 1}屏`} loading="lazy" decoding="async" />)}</div>
+                    <div className="ai-scroll-preview ai-image-stack" tabIndex={0} aria-label="电商详情页长图预览">{aiPortfolio.detailImages.map((src, index) => <img key={src} src={assetPath(src)} alt={`电商详情页第${index + 1}屏`} loading={index === 0 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : 'low'} decoding="async" />)}</div>
                   ) : activeAiPreview === 'prompt' ? (
                     <div className="ai-scroll-preview ai-prompt-preview" tabIndex={0} aria-label="产品提示词预览">{aiPortfolio.promptPreview.map((line, index) => <p key={`${line}-${index}`} className={index < 2 ? 'is-prompt-heading' : ''}>{line}</p>)}<a href={assetPath(aiPortfolio.promptFile)} download>下载完整提示词文档 <ArrowUpRight size={15} /></a></div>
                   ) : activeAiPreview === 'article' ? (
-                    <div className="ai-scroll-preview ai-article-preview" tabIndex={0} aria-label="公众号推文长图预览"><img src={assetPath(aiPortfolio.articleImage)} alt="公众号推文长图" loading="lazy" decoding="async" /></div>
+                    <div className="ai-scroll-preview ai-article-preview" tabIndex={0} aria-label="公众号推文长图预览"><img src={assetPath(aiPortfolio.articleImage)} alt="公众号推文长图" loading="eager" fetchPriority="high" decoding="async" /></div>
                   ) : <div className="ai-preview-empty"><span>悬停作品</span><strong>预览会在这里展开</strong></div>}
                 </div>
                 <div className="ai-work-list">
