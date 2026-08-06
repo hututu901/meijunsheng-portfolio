@@ -1,4 +1,4 @@
-﻿export const accessCode = '4784';
+export const accessCode = '4784';
 
 export const assetPath = (path: string) =>
   `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
@@ -50,42 +50,48 @@ export const works = [
     category: 'Product Film',
     description: '产品卖点与视觉展示短片',
     src: '/videos/%E4%BA%A7%E5%93%81%E5%B1%95%E7%A4%BA.mp4',
-    cover: '/covers/cover-1.png',
+    previewSrc: '/videos/preview/%E4%BA%A7%E5%93%81%E5%B1%95%E7%A4%BA-preview.mp4',
+    cover: '/covers/cover-1.webp',
   },
   {
     title: '产品展示（外贸版）',
     category: 'Export Version',
     description: '面向外贸场景的产品展示内容',
     src: '/videos/%E4%BA%A7%E5%93%81%E5%B1%95%E7%A4%BA%EF%BC%88%E5%A4%96%E8%B4%B8%E7%89%88%EF%BC%89.mp4',
-    cover: '/covers/cover-2.png',
+    previewSrc: '/videos/preview/%E4%BA%A7%E5%93%81%E5%B1%95%E7%A4%BA%EF%BC%88%E5%A4%96%E8%B4%B8%E7%89%88%EF%BC%89-preview.mp4',
+    cover: '/covers/cover-2.webp',
   },
   {
     title: '拜年视频',
     category: 'Festival',
     description: '节日氛围向短视频内容',
     src: '/videos/%E6%8B%9C%E5%B9%B4%E8%A7%86%E9%A2%91.mp4',
-    cover: '/covers/cover-3.png',
+    previewSrc: '/videos/preview/%E6%8B%9C%E5%B9%B4%E8%A7%86%E9%A2%91-preview.mp4',
+    cover: '/covers/cover-3.webp',
   },
   {
     title: '新年祝福类',
     category: 'Campaign',
     description: '祝福类内容策划与成片',
     src: '/videos/%E6%96%B0%E5%B9%B4%E7%A5%9D%E7%A6%8F%E7%B1%BB.mp4',
-    cover: '/covers/cover-4.png',
+    previewSrc: '/videos/preview/%E6%96%B0%E5%B9%B4%E7%A5%9D%E7%A6%8F%E7%B1%BB-preview.mp4',
+    cover: '/covers/cover-4.webp',
   },
   {
     title: '知识类博主 02',
     category: 'Knowledge',
     description: '知识口播与账号内容样片',
     src: '/videos/%E7%9F%A5%E8%AF%86%E7%B1%BB%E5%8D%9A%E4%B8%BB%20(2).mp4',
-    cover: '/covers/cover-5.png',
+    previewSrc: '/videos/preview/%E7%9F%A5%E8%AF%86%E7%B1%BB%E5%8D%9A%E4%B8%BB%20(2)-preview.mp4',
+    cover: '/covers/cover-5.webp',
   },
   {
     title: '知识类博主',
     category: 'Creator',
     description: '知识类短视频成片展示',
     src: '/videos/%E7%9F%A5%E8%AF%86%E7%B1%BB%E5%8D%9A%E4%B8%BB.mp4',
-    cover: '/covers/cover-6.png',
+    previewSrc: '/videos/preview/%E7%9F%A5%E8%AF%86%E7%B1%BB%E5%8D%9A%E4%B8%BB-preview.mp4',
+    cover: '/covers/cover-6.webp',
   },
 ];
 
@@ -93,15 +99,15 @@ export const cloudLink = 'https://pan.baidu.com/s/1eKn2DwjtR7o2XwmrK3_6tQ?pwd=se
 
 export const aiPortfolio = {
   detailImages: [
-    '/ai-portfolio/e-commerce/电商详情页-1.png',
-    '/ai-portfolio/e-commerce/电商详情页-2.png',
-    '/ai-portfolio/e-commerce/电商详情页-3.png',
-    '/ai-portfolio/e-commerce/电商详情页-4.png',
-    '/ai-portfolio/e-commerce/电商详情页-5.png',
-    '/ai-portfolio/e-commerce/电商详情页-6.png',
+    '/ai-portfolio/e-commerce/电商详情页-1.webp',
+    '/ai-portfolio/e-commerce/电商详情页-2.webp',
+    '/ai-portfolio/e-commerce/电商详情页-3.webp',
+    '/ai-portfolio/e-commerce/电商详情页-4.webp',
+    '/ai-portfolio/e-commerce/电商详情页-5.webp',
+    '/ai-portfolio/e-commerce/电商详情页-6.webp',
   ],
   promptFile: '/ai-portfolio/提示词/咖啡杯提示词.docx',
-  articleImage: '/ai-portfolio/article/公众号推文图.jpg',
+  articleImage: '/ai-portfolio/article/公众号推文图.webp',
   promptPreview: [
     '一次性咖啡杯详情页提示词审核稿 v3',
     '本版为带标题文案和副标题文案直接生图版',

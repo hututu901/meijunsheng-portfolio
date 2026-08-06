@@ -95,7 +95,7 @@ function App() {
   const displayWorks = works.map((work, index) => ({ ...work, ...(siteConfig.works[index] ?? {}) }));
   const displayExperience = experience.map((item, index) => ({ ...item, ...(siteConfig.experience[index] ?? {}) }));
   const featuredWork = activeWorkPreview === null ? null : displayWorks[activeWorkPreview];
-  const featuredSrc = featuredWork?.src;
+  const featuredSrc = featuredWork?.previewSrc ?? featuredWork?.src;
 
   useEffect(() => {
     if (!unlocked) return;
@@ -492,7 +492,7 @@ function App() {
             </div>
           </div>
           <div className="hero-portrait" aria-hidden="true">
-            <img src={assetPath('/hero-cutout-v3-mirrored-fade.png')} alt="" />
+            <img src={assetPath('/hero-cutout-v3-mirrored-fade.webp')} alt="" fetchPriority="high" decoding="async" />
           </div>
         </section>
 
@@ -500,7 +500,7 @@ function App() {
           <div className="unlocked-pages">
             <section id="about" className={`page about-page${pageIndex === 1 ? ' is-active-page' : ''}`}>
               <div className="about-portrait" aria-hidden="true">
-                <img src={assetPath('/about-portrait-2-waistfade-v2.png')} alt="" />
+                <img src={assetPath('/about-portrait-2-waistfade-v2.webp')} alt="" loading="lazy" decoding="async" />
               </div>
               <div className="about-copy">
                 <p className="micro-copy">About me</p>
@@ -594,7 +594,7 @@ function App() {
               </div>
               <div className="matrix-wrap body-skill-wrap">
                 <div className="matrix-field body-skill-field" role="group" aria-label="人物能力标签">
-                  <img className="skill-silhouette" src={assetPath('/skill-person-3.png')} alt="" aria-hidden="true" />
+                  <img className="skill-silhouette" src={assetPath('/skill-person-3.webp')} alt="" aria-hidden="true" loading="lazy" decoding="async" />
                   {skillMatrix.map((skill, index) => (
                     <button
                       key={skill.label}
@@ -698,11 +698,11 @@ function App() {
                 <div className="ai-preview-window" aria-live="polite">
                   <div className="ai-preview-topline"><span>PREVIEW / {activeAiPreview ? activeAiPreview.toUpperCase() : 'SELECT A WORK'}</span><i /></div>
                   {activeAiPreview === 'detail' ? (
-                    <div className="ai-scroll-preview ai-image-stack" tabIndex={0} aria-label="电商详情页长图预览">{aiPortfolio.detailImages.map((src, index) => <img key={src} src={assetPath(src)} alt={`电商详情页第${index + 1}屏`} />)}</div>
+                    <div className="ai-scroll-preview ai-image-stack" tabIndex={0} aria-label="电商详情页长图预览">{aiPortfolio.detailImages.map((src, index) => <img key={src} src={assetPath(src)} alt={`电商详情页第${index + 1}屏`} loading="lazy" decoding="async" />)}</div>
                   ) : activeAiPreview === 'prompt' ? (
                     <div className="ai-scroll-preview ai-prompt-preview" tabIndex={0} aria-label="产品提示词预览">{aiPortfolio.promptPreview.map((line, index) => <p key={`${line}-${index}`} className={index < 2 ? 'is-prompt-heading' : ''}>{line}</p>)}<a href={assetPath(aiPortfolio.promptFile)} download>下载完整提示词文档 <ArrowUpRight size={15} /></a></div>
                   ) : activeAiPreview === 'article' ? (
-                    <div className="ai-scroll-preview ai-article-preview" tabIndex={0} aria-label="公众号推文长图预览"><img src={assetPath(aiPortfolio.articleImage)} alt="公众号推文长图" /></div>
+                    <div className="ai-scroll-preview ai-article-preview" tabIndex={0} aria-label="公众号推文长图预览"><img src={assetPath(aiPortfolio.articleImage)} alt="公众号推文长图" loading="lazy" decoding="async" /></div>
                   ) : <div className="ai-preview-empty"><span>悬停作品</span><strong>预览会在这里展开</strong></div>}
                 </div>
                 <div className="ai-work-list">
@@ -721,15 +721,15 @@ function App() {
                 </header>
                 <div className="wechat-body" ref={chatBodyRef}>
                   <div className={`chat-row incoming${visibleChatCount >= 1 ? ' is-visible' : ''}`}>
-                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.jpg')} alt="梅俊生头像" />
+                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                     <p>你好，以上就是我的工作空间，感谢观看！</p>
                   </div>
                   <div className={`chat-row incoming${visibleChatCount >= 2 ? ' is-visible' : ''}`}>
-                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.jpg')} alt="梅俊生头像" />
+                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                     <p>如果你还需要了解其他的，可以直接告诉我。</p>
                   </div>
                   <div className={`chat-row incoming action-message${visibleChatCount >= 3 ? ' is-visible' : ''}`}>
-                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.jpg')} alt="梅俊生头像" />
+                    <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                     <p>
                       如点击
                       <a href={assetPath('/resume/梅俊生-简历投递版.docx')} download>查看/下载简历</a>
@@ -747,12 +747,12 @@ function App() {
                       </div>
                       {item.status === 'typing' ? (
                         <div className="chat-row incoming is-visible typing-row">
-                          <img className="chat-avatar photo-avatar" src={assetPath('/headshot.jpg')} alt="梅俊生头像" />
+                          <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                           <p><span className="typing-dots"><i /><i /><i /></span>正在输入</p>
                         </div>
                       ) : (
                         <div className="chat-row incoming is-visible">
-                          <img className="chat-avatar photo-avatar" src={assetPath('/headshot.jpg')} alt="梅俊生头像" />
+                          <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                           <p>{item.answer}</p>
                         </div>
                       )}
