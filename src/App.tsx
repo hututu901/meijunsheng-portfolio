@@ -659,7 +659,7 @@ function App() {
                         onWaiting={() => setWorkPreviewLoading(true)}
                         onError={() => setWorkPreviewLoading(false)}
                       />
-                      {workPreviewLoading ? <span className="preview-loading-indicator" aria-live="polite">加载中</span> : null}
+                      {workPreviewLoading ? <span className="preview-loading-indicator" aria-live="polite" aria-label="正在加载视频预览" /> : null}
                       <span className="film-count">Film {String((activeWorkPreview ?? 0) + 1).padStart(2, '0')} / 06</span>
                       <button className="play-dot full-watch-button" type="button" onClick={playFeaturedFullscreen} aria-label="完整观看">完整观看</button>
                       <div className="featured-copy">
@@ -677,8 +677,6 @@ function App() {
                       type="button"
                       key={work.src}
                       onClick={() => selectWorkPreview(index)}
-                      onMouseEnter={() => selectWorkPreview(index)}
-                      onFocus={() => selectWorkPreview(index)}
                     >
                       <span className="film-mini-index">0{index + 1}</span>
                       <span className="work-cover-title">{work.title}</span>
