@@ -1,0 +1,89 @@
+/* Final mobile portfolio spacing override. */
+@media (max-width: 760px) {
+  .body-skills-page .body-skill-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+  }
+
+  .body-skills-page .body-skill-field {
+    width: min(100%, 430px) !important;
+    max-width: 430px !important;
+    min-height: 620px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    transform: none !important;
+  }
+
+  .body-skills-page .body-skill-point:nth-of-type(1) { left: 22% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(2) { left: 78% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(3) { left: 18% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(4) { left: 82% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(5) { left: 20% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(6) { left: 80% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(7) { left: 70% !important; }
+  .body-skills-page .body-skill-point:nth-of-type(8) { left: 30% !important; }
+
+  .body-skills-page .body-skill-detail {
+    box-sizing: border-box !important;
+    width: min(100%, 430px) !important;
+    max-width: 430px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    justify-self: center !important;
+  }
+
+  .hero-page .hero-copy {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .hero-page .gate-bar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: stretch !important;
+    width: min(100%, 520px) !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+  }
+
+  .hero-page .gate-bar input,
+  .hero-page .gate-bar button {
+    width: 100% !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    text-align: center !important;
+  }
+
+  .revision-portfolio-page .revision-portfolio-head {
+    display: block !important;
+    margin-bottom: 88px !important;
+  }
+
+  .revision-portfolio-page .revision-portfolio-head > div {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .revision-portfolio-page .revision-portfolio-head h2 {
+    width: 100% !important;
+    text-align: center !important;
+  }
+
+  .revision-portfolio-page .revision-portfolio-head > button {
+    display: flex !important;
+    justify-content: flex-end !important;
+    width: 100% !important;
+    margin: 20px 0 0 !important;
+    padding-right: 6px !important;
+  }
+
+  .revision-portfolio-page .showcase-carousel {
+    margin-top: 0 !important;
+  }
+}
