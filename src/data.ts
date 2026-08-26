@@ -1,7 +1,7 @@
 export const accessCode = '4784';
 
 export const assetPath = (path: string) =>
-  `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
+  /^(data:|blob:|https?:)/i.test(path) ? path : `${import.meta.env.BASE_URL}${path.replace(/^\/+/, '')}`;
 export const profile = {
   name: '梅俊生',
   headline: '内容运营 / 直播运营 / 新媒体增长',

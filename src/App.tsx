@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 type SnakeDirection = 'up' | 'down' | 'left' | 'right';
 type SnakeCell = { x: number; y: number };
-import { ArrowUpRight, Copy, LockKeyhole, X } from 'lucide-react';
+import { ArrowUpRight, Copy, X } from 'lucide-react';
 import { accessCode, aiPortfolio, assetPath, cloudLink, experience, profile, skillMatrix, works } from './data';
+import { PortfolioSection } from './PortfolioRevision';
+import { PortfolioAdmin } from './PortfolioAdmin';
 
 type AdminWork = {
   title: string;
@@ -21,6 +23,34 @@ type AdminExperience = {
   summary: string;
 };
 
+type AdminSkill = {
+  label: string;
+  axis: string;
+  detail: string;
+};
+
+type SiteText = {
+  homeWelcome: string;
+  homeTitle: string;
+  unlockLabel: string;
+  aboutMicro: string;
+  aboutExperience: string;
+  aboutExperienceNote: string;
+  skillsMicro: string;
+  skillsTitle: string;
+  chatHeader: string;
+  chatOpening: string;
+  chatFollowup: string;
+  resumeLabel: string;
+  copyUrlLabel: string;
+  eyeReliefLabel: string;
+  quickInfo: string;
+  quickContact: string;
+  quickHobby: string;
+  contactAnswer: string;
+  hobbyAnswer: string;
+};
+
 type AdminConfig = {
   profile: {
     name: string;
@@ -30,9 +60,11 @@ type AdminConfig = {
   aiSubtitle: string;
   works: AdminWork[];
   experience: AdminExperience[];
+  skills: AdminSkill[];
+  siteText: SiteText;
 };
 
-const adminPassword = '@m7498';
+const adminPassword = '749852';
 const adminStorageKey = 'meijunsheng-portfolio-admin-v1';
 const defaultAdminConfig: AdminConfig = {
   profile: {
@@ -43,12 +75,30 @@ const defaultAdminConfig: AdminConfig = {
   aiSubtitle: '整个网页开发及内容由 Codex、ChatGPT、WorkBuddy 以及豆包共同完成',
   works: works.map(({ title, category, description, src, cover }) => ({ title, category, description, src, cover })),
   experience: experience.map(({ company, role, period, keyword, summary }) => ({ company, role, period, keyword, summary })),
+  skills: skillMatrix.map(({ label, axis, detail }) => ({ label, axis, detail })),
+  siteText: {
+    homeWelcome: 'Hello, welcome', homeTitle: '我的工作空间', unlockLabel: '开始探索', aboutMicro: 'About me',
+    aboutExperience: '3年+', aboutExperienceNote: '新媒体运营与活动策划', skillsMicro: 'Skill System', skillsTitle: '能力矩阵',
+    chatHeader: '梅俊生的工作空间', chatOpening: '你好，以上就是我的工作空间，感谢观看！', chatFollowup: '如果你还需要了解其他的，可以直接告诉我。',
+    resumeLabel: '查看/下载简历', copyUrlLabel: '复制网址', eyeReliefLabel: '摸鱼小游戏',
+    quickInfo: '个人信息', quickContact: '联系方式', quickHobby: '你的爱好', contactAnswer: '电话：15794454784。',
+    hobbyAnswer: '我平时喜欢观察内容趋势、拍摄剪辑、研究镜头语言，也会持续拆解优秀账号的表达方式。',
+  },
 };
 
 const readAdminConfig = (): AdminConfig => {
   try {
     const saved = window.localStorage.getItem(adminStorageKey);
-    if (saved) return { ...defaultAdminConfig, ...JSON.parse(saved) } as AdminConfig;
+    if (saved) {
+      const parsed = JSON.parse(saved) as Partial<AdminConfig>;
+      return {
+        ...defaultAdminConfig,
+        ...parsed,
+        profile: { ...defaultAdminConfig.profile, ...parsed.profile },
+        siteText: { ...defaultAdminConfig.siteText, ...parsed.siteText, eyeReliefLabel: parsed.siteText?.eyeReliefLabel === '缓解眼疲劳' ? '摸鱼小游戏' : (parsed.siteText?.eyeReliefLabel || defaultAdminConfig.siteText.eyeReliefLabel) },
+        skills: parsed.skills?.length ? parsed.skills : defaultAdminConfig.skills,
+      };
+    }
   } catch {
     // Local storage may be unavailable in private browsing.
   }
@@ -70,6 +120,8 @@ function App() {
   const [chatIntroPlayed, setChatIntroPlayed] = useState(false);
   const [newMessageNotice, setNewMessageNotice] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [actionNotice, setActionNotice] = useState('');
+  const navigationLockRef = useRef(false);
   const [eyeTarget, setEyeTarget] = useState(0);
   const [eyeLocked, setEyeLocked] = useState(false);
   const [quickChats, setQuickChats] = useState<Array<{ id: string; question: string; answer: string; status: 'typing' | 'answered' }>>([]);
@@ -83,19 +135,59 @@ function App() {
   const [adminDraft, setAdminDraft] = useState<AdminConfig>(readAdminConfig);
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminMode, setAdminMode] = useState<'hub' | 'upload' | 'manage' | 'overall'>('hub');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [adminNotice, setAdminNotice] = useState('');
-  const pageIds = ['home', 'about', 'experience', 'skills', 'works', 'ai', 'chat'];
-  const specialPageIndex: Record<string, number> = { eye: 7 };
+  const pageIds = ['home', 'about', 'experience', 'skills', 'text', 'images', 'videos', 'chat'];
+  const specialPageIndex: Record<string, number> = { eye: 8 };
   const unlockRef = useRef<HTMLButtonElement | null>(null);
   const featuredPreviewRef = useRef<HTMLVideoElement | null>(null);
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!adminNotice || !adminUnlocked) return undefined;
+    const timer = window.setTimeout(() => setAdminNotice(''), 3200);
+    return () => window.clearTimeout(timer);
+  }, [adminNotice, adminUnlocked]);
+
+  useEffect(() => {
+    if (!actionNotice) return undefined;
+    const timer = window.setTimeout(() => setActionNotice(''), 2600);
+    return () => window.clearTimeout(timer);
+  }, [actionNotice]);
   const snakeBoardRef = useRef<HTMLDivElement | null>(null);
+  const wheelStepRef = useRef(0);
+  const lastWheelStepRef = useRef(0);
   const displayProfile = { ...profile, ...siteConfig.profile };
   const displayWorks = works.map((work, index) => ({ ...work, ...(siteConfig.works[index] ?? {}) }));
   const displayExperience = experience.map((item, index) => ({ ...item, ...(siteConfig.experience[index] ?? {}) }));
+  const displaySkills = skillMatrix.map((skill, index) => ({ ...skill, ...(siteConfig.skills[index] ?? {}) }));
+  const displayText = siteConfig.siteText;
   const featuredWork = activeWorkPreview === null ? null : displayWorks[activeWorkPreview];
   const featuredSrc = featuredWork?.previewSrc ?? featuredWork?.src;
+
+  useEffect(() => {
+    if (!adminOpen) return;
+    const previous = document.body.style.overflow;
+    const previousRoot = document.documentElement.style.overflow;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousWidth = document.body.style.width;
+    const scrollY = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = previous;
+      document.documentElement.style.overflow = previousRoot;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.width = previousWidth;
+      window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior });
+    };
+  }, [adminOpen]);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -104,13 +196,23 @@ function App() {
     const onWheel = (event: WheelEvent) => {
       const target = event.target as HTMLElement | null;
       const eyeRect = document.getElementById('eye')?.getBoundingClientRect();
-      if (eyeLocked || pageIndex === 7 || (eyeRect && Math.abs(eyeRect.top) < 90)) {
+      // A hidden eye page has a zero-sized rect at top: it must not block normal desktop navigation.
+      const eyeIsInViewport = Boolean(eyeRect && eyeRect.height > 0 && Math.abs(eyeRect.top) < 90);
+      if (eyeLocked || pageIndex === 8 || eyeIsInViewport) {
         event.preventDefault();
         return;
       }
       if (target?.closest('.wechat-shell, .ai-scroll-preview, .ai-preview-window')) return;
       if (Math.abs(event.deltaY) < 46 || locked || selectedWork) return;
       event.preventDefault();
+      const now = Date.now();
+      if (now - lastWheelStepRef.current > 1200) wheelStepRef.current = 0;
+      // Treat a touchpad's inertial burst as one gesture. A second deliberate wheel motion is required.
+      if (now - lastWheelStepRef.current < 360) return;
+      lastWheelStepRef.current = now;
+      wheelStepRef.current += 1;
+      if (wheelStepRef.current < 2) return;
+      wheelStepRef.current = 0;
       locked = true;
 
       setPageIndex((current) => {
@@ -136,7 +238,7 @@ function App() {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (!visible?.target.id) return;
         const nextIndex = pageIds.indexOf(visible.target.id);
-        if (nextIndex >= 0) setPageIndex(nextIndex);
+        if (nextIndex >= 0 && !navigationLockRef.current) setPageIndex(nextIndex);
       },
       { threshold: [0.52, 0.68, 0.84] },
     );
@@ -165,7 +267,7 @@ function App() {
   }, [featuredSrc]);
 
   useEffect(() => {
-    if (pageIndex !== 6) return;
+    if (pageIndex !== 7) return;
 
     if (chatIntroPlayed) {
       setVisibleChatCount(3);
@@ -193,7 +295,7 @@ function App() {
   }, [pageIndex, chatIntroPlayed]);
 
   useEffect(() => {
-    if (pageIndex !== 6) return;
+    if (pageIndex !== 7) return;
     const timer = window.setTimeout(() => {
       const body = chatBodyRef.current;
       if (body) body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
@@ -220,10 +322,10 @@ function App() {
 
     const isEyeVisible = () => {
       const rect = document.getElementById('eye')?.getBoundingClientRect();
-      return Boolean(rect && Math.abs(rect.top) < 120);
+      return Boolean(rect && rect.height > 0 && Math.abs(rect.top) < 120);
     };
 
-    const eyeIsLocked = eyeLocked || pageIndex === 7;
+    const eyeIsLocked = eyeLocked || pageIndex === 8;
     document.documentElement.classList.toggle('is-eye-locked', eyeIsLocked);
 
     const keepEyePinned = () => {
@@ -335,6 +437,7 @@ function App() {
   const openAdmin = () => {
     setAdminOpen(true);
     setAdminUnlocked(false);
+    setAdminMode('hub');
     setAdminPasswordInput('');
     setAdminNotice('');
   };
@@ -342,6 +445,7 @@ function App() {
   const unlockAdmin = () => {
     if (adminPasswordInput === adminPassword) {
       setAdminUnlocked(true);
+      setAdminMode('hub');
       setAdminDraft(siteConfig);
       setAdminNotice('已解锁编辑器');
     } else {
@@ -350,9 +454,15 @@ function App() {
   };
 
   const saveAdmin = () => {
-    setSiteConfig(adminDraft);
-    window.localStorage.setItem(adminStorageKey, JSON.stringify(adminDraft));
-    setAdminNotice('已保存到当前浏览器');
+    try {
+      window.localStorage.setItem(adminStorageKey, JSON.stringify(adminDraft));
+      const saved = readAdminConfig();
+      setSiteConfig(saved);
+      setAdminDraft(saved);
+      setAdminNotice('修改已保存，并已在当前页面生效');
+    } catch {
+      setAdminNotice('保存失败，请检查浏览器存储空间');
+    }
   };
 
   const exportAdmin = () => {
@@ -380,6 +490,17 @@ function App() {
       ...current,
       experience: current.experience.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
     }));
+  };
+
+  const updateSkillDraft = (index: number, field: keyof AdminSkill, value: string) => {
+    setAdminDraft((current) => ({
+      ...current,
+      skills: current.skills.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+  };
+
+  const updateSiteTextDraft = (field: keyof SiteText, value: string) => {
+    setAdminDraft((current) => ({ ...current, siteText: { ...current.siteText, [field]: value } }));
   };
 
   const updateWorkDraft = (index: number, field: keyof AdminWork, value: string) => {
@@ -412,11 +533,24 @@ function App() {
 
   const copyCurrentUrl = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = window.location.href;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        if (!document.execCommand('copy')) throw new Error('copy failed');
+        helper.remove();
+      }
       setUrlCopied(true);
+      setActionNotice('网址已复制');
       window.setTimeout(() => setUrlCopied(false), 1600);
     } catch {
       setUrlCopied(false);
+      setActionNotice('复制失败，请检查浏览器权限');
     }
   };
 
@@ -424,14 +558,35 @@ function App() {
     const nextIndex = pageIds.indexOf(id);
     const specialIndex = specialPageIndex[id];
     if (specialIndex !== undefined) {
-      document.getElementById(id)?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'start' });
-      if (id === 'eye') setEyeLocked(true);
+      if (id === 'eye') {
+        setActionNotice('正在进入摸鱼小游戏');
+        setEyeLocked(true);
+      }
       setPageIndex(specialIndex);
+      window.setTimeout(() => {
+        const target = document.getElementById(id);
+        if (target) {
+          navigationLockRef.current = true;
+          window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY, left: 0, behavior: 'instant' as ScrollBehavior });
+          window.setTimeout(() => { navigationLockRef.current = false; }, 600);
+        }
+      }, 80);
       return;
     }
     setEyeLocked(false);
+    navigationLockRef.current = true;
     if (nextIndex >= 0) setPageIndex(nextIndex);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const target = document.getElementById(id);
+    if (target) {
+      const targetTop = target.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
+      window.setTimeout(() => {
+        if (Math.abs(window.scrollY - targetTop) > 8) window.scrollTo({ top: targetTop, left: 0, behavior: 'instant' as ScrollBehavior });
+        navigationLockRef.current = false;
+      }, 1000);
+    } else {
+      navigationLockRef.current = false;
+    }
   };
 
   const selectWorkPreview = (index: number) => {
@@ -461,9 +616,9 @@ function App() {
   };
 
   const quickReplyMap = {
-    info: { question: '个人信息', answer: `${displayProfile.name}，${displayProfile.headline}。${displayProfile.intro}` },
-    contact: { question: '联系方式', answer: '电话：15794454784。' },
-    hobby: { question: '你的爱好', answer: '我平时喜欢观察内容趋势、拍摄剪辑、研究镜头语言，也会持续拆解优秀账号的表达方式。' },
+    info: { question: displayText.quickInfo, answer: `${displayProfile.name}，${displayProfile.headline}。${displayProfile.intro}` },
+    contact: { question: displayText.quickContact, answer: displayText.contactAnswer },
+    hobby: { question: displayText.quickHobby, answer: displayText.hobbyAnswer },
   } as const;
 
   const sendQuickReply = (type: 'info' | 'contact' | 'hobby') => {
@@ -478,7 +633,7 @@ function App() {
     }, 980 + item.answer.length * 18);
   };
   const activeExperienceItem = displayExperience[activeExperience];
-  const activeSkillItem = skillMatrix[activeSkill];
+  const activeSkillItem = displaySkills[activeSkill];
   const experienceWaveItems = [displayExperience[2], displayExperience[1], displayExperience[0]];
 
   return (
@@ -487,8 +642,8 @@ function App() {
         <section id="home" className="page hero-page">
           <div className="hero-copy">
             <span className="folio-index">01 / WORKSPACE</span>
-            <p className="micro-copy">Hello, welcome</p>
-            <h1>我的工作空间</h1>
+            <p className="micro-copy">{displayText.homeWelcome}</p>
+            <h1>{displayText.homeTitle}</h1>
             <div className="hero-rule" aria-hidden="true" />
             <div className="gate-bar" data-state={status}>
               <input
@@ -501,8 +656,7 @@ function App() {
                 onKeyDown={(event) => { if (event.key === 'Enter') verifyCode(); }}
               />
               <button ref={unlockRef} type="button" onClick={verifyCode}>
-                <LockKeyhole size={16} />
-                开始探索
+                {displayText.unlockLabel}
               </button>
             </div>
           </div>
@@ -513,20 +667,30 @@ function App() {
 
         {unlocked ? (
           <div className="unlocked-pages">
+            <nav className="site-section-nav" aria-label="网站导航">
+              <button type="button" onClick={() => jumpToPage('about')}>个人信息</button>
+              <button type="button" onClick={() => jumpToPage('experience')}>工作轨迹</button>
+              <button type="button" onClick={() => jumpToPage('skills')}>个人能力</button>
+              <button type="button" onClick={() => jumpToPage('text')}>提示词工程</button>
+              <button type="button" onClick={() => jumpToPage('images')}>图片作品</button>
+              <button type="button" onClick={() => jumpToPage('videos')}>视频作品</button>
+              <button type="button" onClick={() => jumpToPage('chat')}>结语</button>
+              <button type="button" onClick={openAdmin}>开发者入口</button>
+            </nav>
             <section id="about" className={`page about-page${pageIndex === 1 ? ' is-active-page' : ''}`}>
               <div className="about-portrait" aria-hidden="true">
                 <img src={assetPath('/about-portrait-2-waistfade-v2.webp')} alt="" loading="lazy" decoding="async" />
               </div>
               <div className="about-copy">
-                <p className="micro-copy">About me</p>
+                <p className="micro-copy">{displayText.aboutMicro}</p>
                 <h2>{displayProfile.name}</h2>
                 <p className="role-line">{displayProfile.headline}</p>
                 <p className="statement">{displayProfile.statement}</p>
                 <div className="about-signal-panel" aria-label="个人能力数据概览">
                   <article className="signal-main">
                     <span>Experience</span>
-                    <strong>3年+</strong>
-                    <p>新媒体运营与活动策划</p>
+                    <strong>{displayText.aboutExperience}</strong>
+                    <p>{displayText.aboutExperienceNote}</p>
                   </article>
                   <div className="signal-bars">
                     <div className="signal-bar" style={{ '--level': '88%' } as CSSProperties}>
@@ -579,6 +743,9 @@ function App() {
                     <path className="wave-line wave-line-base" d="M110 214 C230 116 326 220 420 160 S585 78 675 190 S808 286 908 128 S1050 62 1140 174" />
                     <path className="wave-line wave-line-active" d="M110 214 C230 116 326 220 420 160 S585 78 675 190 S808 286 908 128 S1050 62 1140 174" />
                   </svg>
+                  <svg viewBox="0 0 1200 300" preserveAspectRatio="none" className="mobile-stair-svg" aria-hidden="true">
+                    <path d="M82 248 L600 44 L1118 248 Z" />
+                  </svg>
                   <div className="wave-node-layer">
                     {experienceWaveItems.map((item) => {
                       const originalIndex = displayExperience.findIndex((experienceItem) => experienceItem.company === item.company);
@@ -604,13 +771,13 @@ function App() {
 
             <section id="skills" className={`page skills-page interactive-skills-page body-skills-page${pageIndex === 3 ? ' is-active-page' : ''}`}>
               <div className="section-title centered">
-                <span>Skill System</span>
-                <h2>能力矩阵</h2>
+                <span>{displayText.skillsMicro}</span>
+                <h2>{displayText.skillsTitle}</h2>
               </div>
               <div className="matrix-wrap body-skill-wrap">
                 <div className="matrix-field body-skill-field" role="group" aria-label="人物能力标签">
                   <img className="skill-silhouette" src={assetPath('/skill-person-3.webp')} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-                  {skillMatrix.map((skill, index) => (
+                  {displaySkills.map((skill, index) => (
                     <button
                       key={skill.label}
                       type="button"
@@ -632,128 +799,56 @@ function App() {
               </div>
             </section>
 
-            <section id="works" className={`page works-page film-desk-page${pageIndex === 4 ? ' is-active-page' : ''}`}>
-              <div className="works-head">
-                <div className="section-title">
-                  <span>Selected Works</span>
-                  <h2>精选作品</h2>
-                  
-                </div>
-                <div className="cloud-actions">
-                  <a href={cloudLink} target="_blank" rel="noreferrer">
-                    <ArrowUpRight size={17} />
-                    打开作品集
-                  </a>
-                  <button type="button" onClick={copyCloudLink}>
-                    <Copy size={16} />
-                    {copied ? '已复制' : '复制链接'}
-                  </button>
-                </div>
-              </div>
-              <div className="film-desk">
-                <p className="preview-network-note">加载速度与网速相关，请稍后</p>
-                <div className={`featured-work preview-stage${featuredWork ? ' has-selection' : ' is-empty'}${workPreviewLoading ? ' is-loading-preview' : ''}`} aria-label={featuredWork ? `静音预览${featuredWork.title}` : '预览区'}>
-                  <span className="cover-placeholder" aria-hidden="true" />
-                  {/* Keep the preview stage neutral until the selected video is ready. */}
-                  <span className="preview-zone-label">预览区</span>
-                  {featuredWork ? (
-                    <>
-                      <video
-                        ref={featuredPreviewRef}
-                        className="stage-preview-video"
-                        key={featuredWork.src}
-                        src={mediaPath(featuredWork.src)}
-                        muted
-                        loop
-                        playsInline
-                        preload="auto"
-                        onLoadStart={() => setWorkPreviewLoading(true)}
-                        onLoadedMetadata={() => setWorkPreviewLoading(false)}
-                        onLoadedData={() => setWorkPreviewLoading(false)}
-                        onCanPlay={() => setWorkPreviewLoading(false)}
-                        onPlay={() => setWorkPreviewLoading(false)}
-                        onPlaying={() => setWorkPreviewLoading(false)}
-                        onWaiting={() => setWorkPreviewLoading(true)}
-                        onError={() => setWorkPreviewLoading(false)}
-                      />
-                      {workPreviewLoading ? <span className="preview-loading-indicator" aria-live="polite" aria-label="正在加载视频预览" /> : null}
-                      <span className="film-count">Film {String((activeWorkPreview ?? 0) + 1).padStart(2, '0')} / 06</span>
-                      <button className="play-dot full-watch-button" type="button" onClick={playFeaturedFullscreen} aria-label="完整观看">完整观看</button>
-                      <div className="featured-copy">
-                        <p>{featuredWork.category}</p>
-                        <h3>{featuredWork.title}</h3>
-                        <small>{featuredWork.description}</small>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-                <div className="works-grid thumbnail-rail">
-                  {displayWorks.map((work, index) => (
-                    <button
-                      className={`work-card${activeWorkPreview === index ? ' is-active' : ''}`}
-                      type="button"
-                      key={work.src}
-                      onClick={() => selectWorkPreview(index)}
-                    >
-                      <span className="film-mini-index">0{index + 1}</span>
-                      <span className="work-cover-title">{work.title}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <PortfolioSection id="text" type="text" />
+            <PortfolioSection id="images" type="image" />
+            <PortfolioSection id="videos" type="video" />
 
-            <section id="ai" className={`page ai-page${pageIndex === 5 ? ' is-active-page' : ''}`}>
-              <div className="ai-page-intro">
-                <div className="section-title"><span>AI Portfolio</span><h2>AI 作品集</h2></div>
-                <p>从提示词到成片，把一次创作拆成可见的工作流程。</p>
-                
-                <p className="ai-credit-line">{siteConfig.aiSubtitle}</p>
-              </div>
-              <div className="ai-portfolio-layout">
-                <p className="preview-network-note ai-preview-network-note">加载速度与网速相关，请稍后</p>
-                <div className="ai-preview-window" aria-live="polite">
-                  <div className="ai-preview-topline"><span>PREVIEW / {activeAiPreview ? activeAiPreview.toUpperCase() : 'SELECT A WORK'}</span><i /></div>
-                  {activeAiPreview === 'detail' ? (
-                    <div className="ai-scroll-preview ai-image-stack" tabIndex={0} aria-label="电商详情页长图预览">{aiPortfolio.detailImages.map((src, index) => <img key={src} src={assetPath(src)} alt={`电商详情页第${index + 1}屏`} loading={index === 0 ? 'eager' : 'lazy'} fetchPriority={index === 0 ? 'high' : 'low'} decoding="async" />)}</div>
-                  ) : activeAiPreview === 'prompt' ? (
-                    <div className="ai-scroll-preview ai-prompt-preview" tabIndex={0} aria-label="产品提示词预览">{aiPortfolio.promptPreview.map((line, index) => <p key={`${line}-${index}`} className={index < 2 ? 'is-prompt-heading' : ''}>{line}</p>)}<a href={assetPath(aiPortfolio.promptFile)} download>下载完整提示词文档 <ArrowUpRight size={15} /></a></div>
-                  ) : activeAiPreview === 'article' ? (
-                    <div className="ai-scroll-preview ai-article-preview" tabIndex={0} aria-label="公众号推文长图预览"><img src={assetPath(aiPortfolio.articleImage)} alt="公众号推文长图" loading="eager" fetchPriority="high" decoding="async" /></div>
-                  ) : <div className="ai-preview-empty"><span>悬停作品</span><strong>预览会在这里展开</strong></div>}
-                </div>
-                <div className="ai-work-list">
-                  <button type="button" className={`ai-work-entry${activeAiPreview === 'detail' ? ' is-active' : ''}`} onMouseEnter={() => setActiveAiPreview('detail')} onFocus={() => setActiveAiPreview('detail')} onClick={() => setActiveAiPreview('detail')}><span className="ai-entry-index">01</span><span><strong>电商详情页</strong><small>6 screens / vertical story</small></span><ArrowUpRight size={18} /></button>
-                  <button type="button" className={`ai-work-entry${activeAiPreview === 'prompt' ? ' is-active' : ''}`} onMouseEnter={() => setActiveAiPreview('prompt')} onFocus={() => setActiveAiPreview('prompt')} onClick={() => setActiveAiPreview('prompt')}><span className="ai-entry-index">02</span><span><strong>产品提示词</strong><small>structure / copy / visual direction</small></span><ArrowUpRight size={18} /></button>
-                  <button type="button" className={`ai-work-entry${activeAiPreview === 'article' ? ' is-active' : ''}`} onMouseEnter={() => setActiveAiPreview('article')} onFocus={() => setActiveAiPreview('article')} onClick={() => setActiveAiPreview('article')}><span className="ai-entry-index">03</span><span><strong>公众号推文</strong><small>one long-form visual article</small></span><ArrowUpRight size={18} /></button>
-                </div>
-              </div>
-            </section>
-            <section id="chat" className={`page chat-page${pageIndex === 6 ? ' is-active-page' : ''}${chatIntroPlayed ? ' is-chat-settled' : ''}`}>
+            <section id="chat" className={`page chat-page${pageIndex === 7 ? ' is-active-page' : ''}${chatIntroPlayed ? ' is-chat-settled' : ''}`}>
               <div className="wechat-shell" aria-label="微信聊天式结束页">
                 <header className="wechat-header">
                   <span className="wechat-dot" />
-                  <strong>梅俊生的工作空间</strong>
+                  <strong>{displayText.chatHeader}</strong>
                   <em>{visibleChatCount >= 3 ? '在线' : '正在输入...'}</em>
                 </header>
                 <div className="wechat-body" ref={chatBodyRef}>
                   <div className={`chat-row incoming${visibleChatCount >= 1 ? ' is-visible' : ''}`}>
                     <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
-                    <p>你好，以上就是我的工作空间，感谢观看！</p>
+                    <p>{displayText.chatOpening}</p>
                   </div>
                   <div className={`chat-row incoming${visibleChatCount >= 2 ? ' is-visible' : ''}`}>
                     <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
-                    <p>如果你还需要了解其他的，可以直接告诉我。</p>
+                    <p>{displayText.chatFollowup}</p>
                   </div>
                   <div className={`chat-row incoming action-message${visibleChatCount >= 3 ? ' is-visible' : ''}`}>
                     <img className="chat-avatar photo-avatar" src={assetPath('/headshot.webp')} alt="梅俊生头像" loading="lazy" decoding="async" />
                     <p>
                       如点击
-                      <a href={assetPath('/resume/梅俊生简历.pdf')} download>查看/下载简历</a>
+                      <a
+                        href={assetPath('/resume/梅俊生简历.pdf')}
+                        download
+                        onClick={(event) => {
+                          event.preventDefault();
+                          const confirmed = window.confirm('是否下载简历？');
+                          if (!confirmed) {
+                            setActionNotice('已取消下载');
+                            return;
+                          }
+                          const link = document.createElement('a');
+                          link.href = assetPath('/resume/梅俊生简历.pdf');
+                          link.download = '梅俊生简历.pdf';
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          setActionNotice('简历下载已开始');
+                          window.setTimeout(() => setActionNotice('如果没有自动下载，请检查浏览器下载权限'), 900);
+                        }}
+                      >{displayText.resumeLabel}</a>
                       、
-                      <button type="button" onClick={copyCurrentUrl}>{urlCopied ? '已复制网址' : '复制网址'}</button>
-                      以及
-                      <button type="button" onClick={() => jumpToPage('eye')}>缓解眼疲劳</button>
+                      <button type="button" onClick={copyCurrentUrl}>{urlCopied ? '已复制网址' : displayText.copyUrlLabel}</button>
+                      <span className="mobile-eye-entry">
+                        以及
+                        <button className="eye-game-entry" type="button" onClick={() => jumpToPage('eye')}>{displayText.eyeReliefLabel}</button>
+                      </span>
                     </p>
                   </div>
                   {quickChats.map((item) => (
@@ -776,12 +871,13 @@ function App() {
                     </div>
                   ))}
                   {newMessageNotice ? <span className="wechat-new-message-tip">新消息</span> : null}
+                  {actionNotice ? <div className="wechat-action-notice" role="status" aria-live="polite">{actionNotice}</div> : null}
                 </div>
                 <footer className="wechat-input wechat-input-rich">
                   <div className="quick-send-bar" aria-label="快捷发送">
-                    <button type="button" onClick={() => sendQuickReply('info')}>个人信息</button>
-                    <button type="button" onClick={() => sendQuickReply('contact')}>联系方式</button>
-                    <button type="button" onClick={() => sendQuickReply('hobby')}>你的爱好</button>
+                    <button type="button" onClick={() => sendQuickReply('info')}>{displayText.quickInfo}</button>
+                    <button type="button" onClick={() => sendQuickReply('contact')}>{displayText.quickContact}</button>
+                    <button type="button" onClick={() => sendQuickReply('hobby')}>{displayText.quickHobby}</button>
                   </div>
                   <div className="wechat-input-line">
                     <span>输入消息...</span>
@@ -795,7 +891,7 @@ function App() {
             </section>
             <section
               id="eye"
-              className={`page eye-page${pageIndex === 7 || eyeLocked ? ' is-active-page' : ''}`}
+              className={`page eye-page${eyeLocked ? ' is-active-page' : ''}`}
               onPointerDownCapture={(event) => {
                 if ((event.target as HTMLElement).closest('.eye-return-home')) return;
                 event.preventDefault();
@@ -810,7 +906,7 @@ function App() {
               <div className="eye-game snake-eye-game">
                 <div className="eye-copy">
                   <span>Eye Relief</span>
-                  <h2>缓解眼疲劳</h2>
+                  <h2>摸鱼小游戏</h2>
                   <p>用方向键或 WASD 控制贪吃蛇，让视线跟随蛇头移动。页面内滚轮不会离开这里，结束后点击按钮返回首页。</p>
                   <button className="eye-return-home" type="button" onClick={() => { setEyeLocked(false); jumpToPage('home'); }}>返回首页</button>
                 </div>
@@ -832,10 +928,9 @@ function App() {
               </div>
             </section>
             {adminOpen ? (
-              <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="开发者内容管理">
+              <div className="admin-overlay" role="dialog" aria-modal="true" aria-label="开发者内容管理" onWheel={(event) => event.stopPropagation()} onTouchMove={(event) => event.stopPropagation()}>
                 <div className="admin-panel">
-                  <header className="admin-header">
-                    <div><span>Developer workspace</span><h2>内容管理</h2></div>
+                  <header className="admin-header admin-header-compact">
                     <button type="button" className="admin-close" onClick={() => setAdminOpen(false)} aria-label="关闭管理后台"><X size={20} /></button>
                   </header>
                   {!adminUnlocked ? (
@@ -847,16 +942,29 @@ function App() {
                     </form>
                   ) : (
                     <div className="admin-editor">
-                      <div className="admin-editor-note">静态 GitHub Pages 会把修改保存到当前浏览器。需要迁移时请导出配置文件。</div>
+                      {adminNotice ? <div className="admin-status" role="status" aria-live="polite">{adminNotice}</div> : null}
+                      <div className="admin-mode-tabs" role="tablist" aria-label="后台功能">
+                        <button type="button" className={adminMode === 'upload' ? 'is-active' : ''} onClick={() => setAdminMode('upload')}>内容上传</button>
+                        <button type="button" className={adminMode === 'manage' ? 'is-active' : ''} onClick={() => setAdminMode('manage')}>内容管理</button>
+                        <button type="button" className={adminMode === 'overall' ? 'is-active' : ''} onClick={() => setAdminMode('overall')}>整体编辑</button>
+                      </div>
+                      {adminMode === 'hub' ? <section className="admin-hub"><h3>开发者工作台</h3><p>从上方选择一个功能开始。</p></section> : null}
+                      {adminMode === 'upload' ? <PortfolioAdmin mode="upload" /> : null}
+                      {adminMode === 'manage' ? <PortfolioAdmin mode="manage" /> : null}
+                      {adminMode === 'overall' ? <>
                       <section className="admin-section"><h3>个人信息</h3><div className="admin-fields">
                         <label>姓名<input value={adminDraft.profile.name} onChange={(event) => updateProfileDraft('name', event.target.value)} /></label>
                         <label>职业标题<input value={adminDraft.profile.headline} onChange={(event) => updateProfileDraft('headline', event.target.value)} /></label>
                         <label className="admin-wide">个人介绍<textarea value={adminDraft.profile.statement} onChange={(event) => updateProfileDraft('statement', event.target.value)} /></label>
                       </div></section>
                       <section className="admin-section"><h3>工作经历</h3>{adminDraft.experience.map((item, index) => <fieldset className="admin-record" key={`${item.company}-${index}`}><legend>经历 {index + 1}</legend><div className="admin-fields"><label>公司<input value={item.company} onChange={(event) => updateExperienceDraft(index, 'company', event.target.value)} /></label><label>岗位<input value={item.role} onChange={(event) => updateExperienceDraft(index, 'role', event.target.value)} /></label><label>时间<input value={item.period} onChange={(event) => updateExperienceDraft(index, 'period', event.target.value)} /></label><label>关键词<input value={item.keyword} onChange={(event) => updateExperienceDraft(index, 'keyword', event.target.value)} /></label><label className="admin-wide">工作内容<textarea value={item.summary} onChange={(event) => updateExperienceDraft(index, 'summary', event.target.value)} /></label></div></fieldset>)}</section>
-                      <section className="admin-section"><h3>作品与素材</h3>{adminDraft.works.map((work, index) => <fieldset className="admin-record" key={`${work.src}-${index}`}><legend>作品 {String(index + 1).padStart(2, '0')}</legend><div className="admin-fields"><label>作品名<input value={work.title} onChange={(event) => updateWorkDraft(index, 'title', event.target.value)} /></label><label>分类<input value={work.category} onChange={(event) => updateWorkDraft(index, 'category', event.target.value)} /></label><label>视频地址<input value={work.src} onChange={(event) => updateWorkDraft(index, 'src', event.target.value)} /></label><label>封面地址<input value={work.cover.startsWith('data:') ? '已上传本地封面' : work.cover} onChange={(event) => updateWorkDraft(index, 'cover', event.target.value)} /></label><label className="admin-wide">说明<textarea value={work.description} onChange={(event) => updateWorkDraft(index, 'description', event.target.value)} /></label><label className="admin-file">上传封面<input type="file" accept="image/*" onChange={(event) => uploadWorkCover(index, event.target.files?.[0])} /></label></div></fieldset>)}</section>
-                      <section className="admin-section"><h3>AI 作品集</h3><label className="admin-wide">副标题<input value={adminDraft.aiSubtitle} onChange={(event) => setAdminDraft((current) => ({ ...current, aiSubtitle: event.target.value }))} /></label></section>
-                      <div className="admin-actions"><button type="button" onClick={saveAdmin}>保存修改</button><button type="button" onClick={exportAdmin}>导出配置</button><button type="button" className="admin-muted-button" onClick={resetAdmin}>恢复默认</button>{adminNotice ? <span>{adminNotice}</span> : null}</div>
+                      <section className="admin-section"><h3>个人能力</h3>{adminDraft.skills.map((skill, index) => <fieldset className="admin-record" key={`${skill.label}-${index}`}><legend>能力 {String(index + 1).padStart(2, '0')}</legend><div className="admin-fields"><label>标签<input value={skill.label} onChange={(event) => updateSkillDraft(index, 'label', event.target.value)} /></label><label>部位/维度<input value={skill.axis} onChange={(event) => updateSkillDraft(index, 'axis', event.target.value)} /></label><label className="admin-wide">能力描述<textarea value={skill.detail} onChange={(event) => updateSkillDraft(index, 'detail', event.target.value)} /></label></div></fieldset>)}</section>
+                      <section className="admin-section"><h3>首页与结语</h3><div className="admin-fields">
+                        <label>首页欢迎语<input value={adminDraft.siteText.homeWelcome} onChange={(event) => updateSiteTextDraft('homeWelcome', event.target.value)} /></label><label>首页标题<input value={adminDraft.siteText.homeTitle} onChange={(event) => updateSiteTextDraft('homeTitle', event.target.value)} /></label><label>解锁按钮文字<input value={adminDraft.siteText.unlockLabel} onChange={(event) => updateSiteTextDraft('unlockLabel', event.target.value)} /></label><label>个人页英文标题<input value={adminDraft.siteText.aboutMicro} onChange={(event) => updateSiteTextDraft('aboutMicro', event.target.value)} /></label><label>经验数字<input value={adminDraft.siteText.aboutExperience} onChange={(event) => updateSiteTextDraft('aboutExperience', event.target.value)} /></label><label>经验说明<input value={adminDraft.siteText.aboutExperienceNote} onChange={(event) => updateSiteTextDraft('aboutExperienceNote', event.target.value)} /></label><label>能力页英文标题<input value={adminDraft.siteText.skillsMicro} onChange={(event) => updateSiteTextDraft('skillsMicro', event.target.value)} /></label><label>能力页标题<input value={adminDraft.siteText.skillsTitle} onChange={(event) => updateSiteTextDraft('skillsTitle', event.target.value)} /></label><label>结语页标题<input value={adminDraft.siteText.chatHeader} onChange={(event) => updateSiteTextDraft('chatHeader', event.target.value)} /></label><label>简历链接文字<input value={adminDraft.siteText.resumeLabel} onChange={(event) => updateSiteTextDraft('resumeLabel', event.target.value)} /></label><label>复制网址文字<input value={adminDraft.siteText.copyUrlLabel} onChange={(event) => updateSiteTextDraft('copyUrlLabel', event.target.value)} /></label><label>眼疲劳入口文字<input value={adminDraft.siteText.eyeReliefLabel} onChange={(event) => updateSiteTextDraft('eyeReliefLabel', event.target.value)} /></label><label>快捷按钮：个人信息<input value={adminDraft.siteText.quickInfo} onChange={(event) => updateSiteTextDraft('quickInfo', event.target.value)} /></label><label>快捷按钮：联系方式<input value={adminDraft.siteText.quickContact} onChange={(event) => updateSiteTextDraft('quickContact', event.target.value)} /></label><label>快捷按钮：你的爱好<input value={adminDraft.siteText.quickHobby} onChange={(event) => updateSiteTextDraft('quickHobby', event.target.value)} /></label><label>联系方式回复<input value={adminDraft.siteText.contactAnswer} onChange={(event) => updateSiteTextDraft('contactAnswer', event.target.value)} /></label><label className="admin-wide">结语消息 1<textarea value={adminDraft.siteText.chatOpening} onChange={(event) => updateSiteTextDraft('chatOpening', event.target.value)} /></label><label className="admin-wide">结语消息 2<textarea value={adminDraft.siteText.chatFollowup} onChange={(event) => updateSiteTextDraft('chatFollowup', event.target.value)} /></label><label className="admin-wide">爱好回复<textarea value={adminDraft.siteText.hobbyAnswer} onChange={(event) => updateSiteTextDraft('hobbyAnswer', event.target.value)} /></label>
+                      </div></section>
+                      <section className="admin-section"><h3>整体编辑范围</h3><p className="admin-scope-note">此处用于修改首页、个人信息与工作轨迹的文字内容。作品集的文字、图片、视频、眼疲劳游戏说明和开发者后台提示，均不在整体编辑范围内。</p></section>
+                      <div className="admin-actions"><button type="button" onClick={saveAdmin}>保存修改</button><button type="button" onClick={exportAdmin}>导出配置</button><button type="button" className="admin-muted-button" onClick={resetAdmin}>恢复默认</button></div>
+                      </> : null}
                     </div>
                   )}
                 </div>
