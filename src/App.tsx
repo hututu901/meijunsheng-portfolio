@@ -6,6 +6,7 @@ import { ArrowUpRight, Copy, X } from 'lucide-react';
 import { accessCode, aiPortfolio, assetPath, cloudLink, experience, profile, skillMatrix, works } from './data';
 import { PortfolioSection } from './PortfolioRevision';
 import { PortfolioAdmin } from './PortfolioAdmin';
+import { getAuthSession, isAuthConfigured, signIn, signOut } from './supabaseAuth';
 
 type AdminWork = {
   title: string;
@@ -137,6 +138,8 @@ function App() {
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [adminMode, setAdminMode] = useState<'hub' | 'upload' | 'manage' | 'overall'>('hub');
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [authSession, setAuthSession] = useState(getAuthSession);
   const [adminNotice, setAdminNotice] = useState('');
   const pageIds = ['home', 'about', 'experience', 'skills', 'text', 'images', 'videos', 'chat'];
   const specialPageIndex: Record<string, number> = { eye: 8 };
@@ -439,10 +442,15 @@ function App() {
     setAdminUnlocked(false);
     setAdminMode('hub');
     setAdminPasswordInput('');
+    setAdminEmailInput('');
     setAdminNotice('');
   };
 
-  const unlockAdmin = () => {
+  const unlockAdmin = async () => {
+    if (isAuthConfigured) {
+      try { const session = await signIn(adminEmailInput.trim(), adminPasswordInput); setAuthSession(session); setAdminUnlocked(true); setAdminMode('hub'); setAdminDraft(siteConfig); setAdminNotice('已登录 Supabase 开发者账号'); } catch { setAdminNotice('邮箱或密码不正确'); }
+      return;
+    }
     if (adminPasswordInput === adminPassword) {
       setAdminUnlocked(true);
       setAdminMode('hub');
@@ -936,7 +944,8 @@ function App() {
                   {!adminUnlocked ? (
                     <form className="admin-lock" onSubmit={(event) => { event.preventDefault(); unlockAdmin(); }}>
                       <p>只修改文字与素材，不改变页面结构和动效。</p>
-                      <label>管理密码<input autoFocus type="password" value={adminPasswordInput} onChange={(event) => setAdminPasswordInput(event.target.value)} placeholder="输入密码" /></label>
+                      {isAuthConfigured ? <label>开发者邮箱<input autoFocus type="email" value={adminEmailInput} onChange={(event) => setAdminEmailInput(event.target.value)} placeholder="输入 Supabase Auth 邮箱" /></label> : null}
+                      <label>管理密码<input autoFocus={!isAuthConfigured} type="password" value={adminPasswordInput} onChange={(event) => setAdminPasswordInput(event.target.value)} placeholder="输入密码" /></label>
                       <button type="submit">进入编辑器</button>
                       {adminNotice ? <small>{adminNotice}</small> : null}
                     </form>
@@ -948,7 +957,7 @@ function App() {
                         <button type="button" className={adminMode === 'manage' ? 'is-active' : ''} onClick={() => setAdminMode('manage')}>内容管理</button>
                         <button type="button" className={adminMode === 'overall' ? 'is-active' : ''} onClick={() => setAdminMode('overall')}>整体编辑</button>
                       </div>
-                      {adminMode === 'hub' ? <section className="admin-hub"><h3>开发者工作台</h3><p>从上方选择一个功能开始。</p></section> : null}
+                      {adminMode === 'hub' ? <section className="admin-hub"><h3>开发者工作台</h3><p>从上方选择一个功能开始。</p>{authSession ? <button type="button" onClick={() => { signOut(); setAuthSession(null); setAdminUnlocked(false); setAdminNotice('已退出 Supabase 开发者账号'); }}>退出登录</button> : null}</section> : null}
                       {adminMode === 'upload' ? <PortfolioAdmin mode="upload" /> : null}
                       {adminMode === 'manage' ? <PortfolioAdmin mode="manage" /> : null}
                       {adminMode === 'overall' ? <>
