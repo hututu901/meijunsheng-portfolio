@@ -19,7 +19,8 @@ export const signIn = async (email: string, password: string) => {
 };
 export const requestPasswordReset = async (email: string) => {
   if (!isAuthConfigured) throw new Error('Supabase Auth 未配置');
-  const response = await fetch(`${endpoint}/auth/v1/recover`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ email, redirect_to: window.location.origin }) });
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const response = await fetch(`${endpoint}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ email }) });
   if (!response.ok) throw new Error('重置邮件发送失败');
 };
 export const updatePassword = async (password: string) => {
