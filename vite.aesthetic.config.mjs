@@ -6,3 +6,4 @@ export default {
   }
 };
 
+// Cloudflare Pages production output
