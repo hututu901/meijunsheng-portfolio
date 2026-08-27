@@ -1,5 +1,5 @@
 export default {
-  base: '/meijunsheng-portfolio/',
+  base: '/',
   build: {
     outDir: 'dist',
     emptyOutDir: true
