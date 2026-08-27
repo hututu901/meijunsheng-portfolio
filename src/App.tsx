@@ -640,7 +640,7 @@ function App() {
       );
     }, 980 + item.answer.length * 18);
   };
-  const activeExperienceItem = displayExperience[activeExperience];
+  const activeExperienceItem = displayExperience[activeExperience] ?? displayExperience[0];
   const activeSkillItem = displaySkills[activeSkill];
   const experienceWaveItems = [displayExperience[2], displayExperience[1], displayExperience[0]];
 
@@ -755,12 +755,11 @@ function App() {
                     <path d="M82 248 L600 44 L1118 248 Z" />
                   </svg>
                   <div className="wave-node-layer">
-                    {experienceWaveItems.map((item) => {
-                      const originalIndex = displayExperience.findIndex((experienceItem) => experienceItem.company === item.company);
-                      const waveIndex = experienceWaveItems.findIndex((experienceItem) => experienceItem.company === item.company);
+                    {experienceWaveItems.map((item, waveIndex) => {
+                      const originalIndex = displayExperience.length - 1 - waveIndex;
                       return (
                         <button
-                          key={item.company}
+                          key={`${item.company}-${originalIndex}`}
                           type="button"
                           className={`wave-career-node wave-node-${waveIndex + 1}${activeExperience === originalIndex ? ' is-active' : ''}`}
                           onClick={() => setActiveExperience(originalIndex)}
