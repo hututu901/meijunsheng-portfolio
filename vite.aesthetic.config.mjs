@@ -5,3 +5,5 @@ export default {
     emptyOutDir: true
   }
 };
+
+// Cloudflare Pages production output
