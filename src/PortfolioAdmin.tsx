@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { FileText, Image, Upload, Video, X } from 'lucide-react';
-import { PortfolioItem, PortfolioType, readPortfolio, readPortfolioAsync, sortPortfolioItems, writePortfolio } from './PortfolioRevision';
+import { PortfolioItem, PortfolioType, readPortfolio, readPortfolioAsync, sortPortfolioItems, writePortfolio, writePortfolioCloud } from './PortfolioRevision';
+import { isSupabaseConfigured, uploadPortfolioFile } from './supabasePortfolio';
+import { getAuthSession } from './supabaseAuth';
 import { assetPath } from './data';
 import './portfolio-admin.css';
 
@@ -65,7 +67,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
   const [publishMessage, setPublishMessage] = useState('');
   const [menu, setMenu] = useState<{ item: PortfolioItem; x: number; y: number } | null>(null);
   const [previewItem, setPreviewItem] = useState<PortfolioItem | null>(null);
-  const save = (next: PortfolioItem[]) => { const ordered = sortPortfolioItems(next); setItems(ordered); writePortfolio(ordered); };
+  const save = async (next: PortfolioItem[]) => { const ordered = sortPortfolioItems(next); setItems(ordered); if (isSupabaseConfigured && getAuthSession()) { try { await writePortfolioCloud(ordered); setPublishMessage('云端内容已保存。'); } catch { setPublishMessage('本地已保存，但云端保存失败，请检查 Supabase 配置。'); } } else writePortfolio(ordered); };
 
   const chooseTextFile = async (file: File | null) => {
     setWorkFile(file);
@@ -93,7 +95,8 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
       const content = await readDocxText(file);
       if (!content) { setPublishMessage('未读取到提示词正文，请选择含有文字的 .docx 文件。'); return; }
       const now = Date.now();
-      save(items.map(current => current.id === item.id ? { ...current, file: file.name, documentContent: content, updatedAt: now } : current));
+      const remoteFile = isSupabaseConfigured ? await uploadPortfolioFile(file, 'text') : file.name;
+      await save(items.map(current => current.id === item.id ? { ...current, file: remoteFile || file.name, documentContent: content, updatedAt: now } : current));
       setPublishMessage(`已更新「${item.title}」的提示词正文。`);
       setMenu(null);
     } catch { setPublishMessage('文稿读取失败，请重新选择 .docx 文件。'); }
@@ -104,9 +107,9 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     if (type === 'text' && !documentContent) { setPublishMessage('请上传可读取的 .docx 文稿后再发布。'); return; }
     if (!window.confirm('确认发布这件作品？')) return;
     try {
-      const file = type === 'text' ? workFile.name : await toDataUrl(workFile);
-      const cover = coverFile ? await toDataUrl(coverFile) : undefined;
-      save([...items, {
+      const file = isSupabaseConfigured ? (await uploadPortfolioFile(workFile, type) || undefined) : type === 'text' ? workFile.name : await toDataUrl(workFile);
+      const cover = coverFile ? (isSupabaseConfigured ? (await uploadPortfolioFile(coverFile, `${type}/covers`) || undefined) : await toDataUrl(coverFile)) : undefined;
+      await save([...items, {
         id: `${type}-${Date.now()}`,
         type,
         title: title.trim(),
@@ -127,8 +130,8 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
 
   const changeCover = async (item: PortfolioItem, file?: File) => {
     if (!file) return;
-    const cover = await toDataUrl(file);
-    save(items.map(current => current.id === item.id ? { ...current, cover, updatedAt: Date.now() } : current));
+    const cover = isSupabaseConfigured ? (await uploadPortfolioFile(file, `${item.type}/covers`) || undefined) : await toDataUrl(file);
+    await save(items.map(current => current.id === item.id ? { ...current, cover, updatedAt: Date.now() } : current));
     setMenu(null);
     setPublishMessage(`已更新「${item.title}」的封面。`);
   };

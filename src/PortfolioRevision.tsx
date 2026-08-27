@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ArrowUpRight, FileText, Image, Play, X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { assetPath } from './data';
 import './portfolio-revision.css';
+import { fetchCloudPortfolio, isSupabaseConfigured, upsertCloudPortfolio } from './supabasePortfolio';
 
 export type PortfolioType = 'text' | 'image' | 'video';
 export type PortfolioItem = { id: string; type: PortfolioType; title: string; file?: string; cover?: string; preview?: string; description?: string; textPreview?: string; documentContent?: string; createdAt?: number; updatedAt?: number };
@@ -79,6 +80,12 @@ export const readPortfolio = (): PortfolioItem[] => {
   } catch { return defaultPortfolio; }
 };
 export const readPortfolioAsync = async (): Promise<PortfolioItem[]> => {
+  if (isSupabaseConfigured) {
+    try {
+      const cloudItems = await fetchCloudPortfolio();
+      if (cloudItems?.length) { portfolioCache = normalizePortfolio(cloudItems); return portfolioCache; }
+    } catch { /* Keep the local fallback available when cloud setup is incomplete. */ }
+  }
   const indexed = await readIndexedPortfolio();
   portfolioCache = indexed || readPortfolio();
   return portfolioCache;
@@ -89,6 +96,11 @@ export const writePortfolio = (items: PortfolioItem[]) => {
   void persistIndexedPortfolio(ordered);
   try { window.localStorage.setItem(storageKey, JSON.stringify(ordered)); } catch { /* IndexedDB is the primary media store. */ }
   window.dispatchEvent(new Event('portfolio-change'));
+};
+export const writePortfolioCloud = async (items: PortfolioItem[]) => {
+  const ordered = sortPortfolioItems(items);
+  writePortfolio(ordered);
+  await upsertCloudPortfolio(ordered);
 };
 
 function Tile({ item, index, onOpen }: { item: PortfolioItem; index: number; onOpen: () => void }) {
