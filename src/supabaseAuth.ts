@@ -17,26 +17,5 @@ export const signIn = async (email: string, password: string) => {
   window.localStorage.setItem(sessionKey, JSON.stringify(session));
   return session;
 };
-export const requestPasswordReset = async (email: string) => {
-  if (!isAuthConfigured) throw new Error('Supabase Auth 未配置');
-  const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const response = await fetch(`${endpoint}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, { method: 'POST', headers: authHeaders, body: JSON.stringify({ email }) });
-  if (!response.ok) throw new Error('重置邮件发送失败');
-};
-export const updatePassword = async (password: string) => {
-  const session = getAuthSession();
-  if (!session) throw new Error('重置链接已失效');
-  const response = await fetch(`${endpoint}/auth/v1/user`, { method: 'PUT', headers: { ...authHeaders, Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ password }) });
-  if (!response.ok) throw new Error('密码更新失败');
-};
-export const restoreRecoverySession = () => {
-  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (!accessToken || !refreshToken || params.get('type') !== 'recovery') return false;
-  window.localStorage.setItem(sessionKey, JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }));
-  window.history.replaceState(null, '', window.location.pathname + window.location.search);
-  return true;
-};
 export const signOut = () => window.localStorage.removeItem(sessionKey);
 export const authAccessToken = () => getAuthSession()?.access_token || anonKey;

@@ -6,7 +6,7 @@ import { ArrowUpRight, Copy, X } from 'lucide-react';
 import { accessCode, aiPortfolio, assetPath, cloudLink, experience, profile, skillMatrix, works } from './data';
 import { PortfolioSection } from './PortfolioRevision';
 import { PortfolioAdmin } from './PortfolioAdmin';
-import { getAuthSession, isAuthConfigured, requestPasswordReset, restoreRecoverySession, signIn, signOut, updatePassword } from './supabaseAuth';
+import { getAuthSession, isAuthConfigured, signIn, signOut } from './supabaseAuth';
 
 type AdminWork = {
   title: string;
@@ -141,10 +141,6 @@ function App() {
   const [adminEmailInput, setAdminEmailInput] = useState('');
   const [authSession, setAuthSession] = useState(getAuthSession);
   const [adminNotice, setAdminNotice] = useState('');
-  const [resetMode, setResetMode] = useState<'none' | 'request' | 'update'>(() => restoreRecoverySession() ? 'update' : 'none');
-  const [resetEmailInput, setResetEmailInput] = useState('a15794454784@zohomail.com');
-  const [newPasswordInput, setNewPasswordInput] = useState('');
-  const [resetConfirmInput, setResetConfirmInput] = useState('');
   const pageIds = ['home', 'about', 'experience', 'skills', 'text', 'images', 'videos', 'chat'];
   const specialPageIndex: Record<string, number> = { eye: 8 };
   const unlockRef = useRef<HTMLButtonElement | null>(null);
@@ -465,17 +461,6 @@ function App() {
     }
   };
 
-  const sendResetEmail = async () => {
-    try { await requestPasswordReset(resetEmailInput.trim()); setAdminNotice('重置邮件已发送，请打开邮箱中的最新链接。'); setResetMode('none'); }
-    catch { setAdminNotice('重置邮件发送失败，请检查邮箱地址。'); }
-  };
-
-  const finishPasswordReset = async () => {
-    if (newPasswordInput.length < 6) { setAdminNotice('新密码至少需要 6 位。'); return; }
-    if (newPasswordInput !== resetConfirmInput) { setAdminNotice('两次输入的新密码不一致。'); return; }
-    try { await updatePassword(newPasswordInput); setNewPasswordInput(''); setResetConfirmInput(''); setResetMode('none'); setAdminNotice('密码已更新，请返回开发者入口登录。'); }
-    catch { setAdminNotice('链接已失效，请重新发送密码重置邮件。'); }
-  };
 
   const saveAdmin = () => {
     try {
@@ -956,29 +941,12 @@ function App() {
                   <header className="admin-header admin-header-compact">
                     <button type="button" className="admin-close" onClick={() => setAdminOpen(false)} aria-label="关闭管理后台"><X size={20} /></button>
                   </header>
-                  {resetMode === 'update' ? (
-                    <form className="admin-lock" onSubmit={(event) => { event.preventDefault(); void finishPasswordReset(); }}>
-                      <p>请设置新的开发者登录密码。</p>
-                      <label>新密码<input autoFocus type="password" value={newPasswordInput} onChange={(event) => setNewPasswordInput(event.target.value)} placeholder="至少 6 位" /></label>
-                      <label>确认新密码<input type="password" value={resetConfirmInput} onChange={(event) => setResetConfirmInput(event.target.value)} placeholder="再次输入新密码" /></label>
-                      <button type="submit">保存新密码</button>
-                      {adminNotice ? <small>{adminNotice}</small> : null}
-                    </form>
-                  ) : resetMode === 'request' ? (
-                    <form className="admin-lock" onSubmit={(event) => { event.preventDefault(); void sendResetEmail(); }}>
-                      <p>输入 Supabase 开发者邮箱，接收密码重置链接。</p>
-                      <label>开发者邮箱<input autoFocus type="email" value={resetEmailInput} onChange={(event) => setResetEmailInput(event.target.value)} /></label>
-                      <button type="submit">发送重置链接</button>
-                      <button type="button" onClick={() => setResetMode('none')}>返回登录</button>
-                      {adminNotice ? <small>{adminNotice}</small> : null}
-                    </form>
-                  ) : !adminUnlocked ? (
+                  {!adminUnlocked ? (
                     <form className="admin-lock" onSubmit={(event) => { event.preventDefault(); unlockAdmin(); }}>
                       <p>只修改文字与素材，不改变页面结构和动效。</p>
                       {isAuthConfigured ? <label>开发者邮箱<input autoFocus type="email" value={adminEmailInput} onChange={(event) => setAdminEmailInput(event.target.value)} placeholder="输入 Supabase Auth 邮箱" /></label> : null}
                       <label>管理密码<input autoFocus={!isAuthConfigured} type="password" value={adminPasswordInput} onChange={(event) => setAdminPasswordInput(event.target.value)} placeholder="输入密码" /></label>
                       <button type="submit">进入编辑器</button>
-                      <button type="button" onClick={() => { setResetMode('request'); setAdminNotice(''); }}>忘记密码？发送重置链接</button>
                       {adminNotice ? <small>{adminNotice}</small> : null}
                     </form>
                   ) : (
