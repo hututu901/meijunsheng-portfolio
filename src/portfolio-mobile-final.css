@@ -1,5 +1,21 @@
 /* Final mobile portfolio spacing override. */
 @media (max-width: 760px) {
+  .showcase-carousel-stage .showcase-card {
+    display: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transform: none !important;
+  }
+
+  .showcase-carousel-stage .showcase-card.showcase-card-active {
+    display: block !important;
+    pointer-events: auto !important;
+  }
+
   .showcase-card-visual > img,
   .archive-card-visual > img {
     object-fit: contain !important;
