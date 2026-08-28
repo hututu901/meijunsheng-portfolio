@@ -683,7 +683,7 @@ function App() {
               <button type="button" onClick={() => jumpToPage('images')}>图片作品</button>
               <button type="button" onClick={() => jumpToPage('videos')}>视频作品</button>
               <button type="button" onClick={() => jumpToPage('chat')}>结语</button>
-              <button type="button" onClick={openAdmin}>开发者入口</button>
+              <button className="developer-entry-button" type="button" onClick={openAdmin}>开发者入口</button>
             </nav>
             <section id="about" className={`page about-page${pageIndex === 1 ? ' is-active-page' : ''}`}>
               <div className="about-portrait" aria-hidden="true">
