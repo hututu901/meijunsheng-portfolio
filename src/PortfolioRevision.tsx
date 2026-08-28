@@ -14,14 +14,9 @@ const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(nam
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
 
 export const defaultPortfolio: PortfolioItem[] = [
-  ...Array.from({ length: 6 }, (_, index) => ({ id: `text-${index + 1}`, type: 'text' as const, title: `提示词工程 ${String(index + 1).padStart(2, '0')}`, description: '提示词封面等待上传' })),
-  ...Array.from({ length: 6 }, (_, index) => ({ id: `image-${index + 1}`, type: 'image' as const, title: `图片作品 ${String(index + 1).padStart(2, '0')}`, description: '图片封面等待上传' })),
-  { id: 'video-1', type: 'video', title: '视频作品 01' },
-  { id: 'video-2', type: 'video', title: '视频作品 02' },
-  { id: 'video-3', type: 'video', title: '视频作品 03' },
-  { id: 'video-4', type: 'video', title: '视频作品 04' },
-  { id: 'video-5', type: 'video', title: '视频作品 05' },
-  { id: 'video-6', type: 'video', title: '视频作品 06' },
+  ...['小何料理机-实际API双语生图提示词', '小何无线蓝牙耳机-商详双语提示词', '小何洁面乳-双语提示词', '小何胶囊咖啡机_商详提示词双语', '小何负离子吹风机_双语提示词', '一次性咖啡杯提示词练习'].map((title, index) => ({ id: `fallback-text-${index + 1}`, type: 'text' as const, title, cover: `/covers/cover-${(index % 6) + 1}.webp`, description: 'AI视觉提示词个人练习' })),
+  ...['小何料理机-商详', '小何蓝牙耳机-商详', '小何洁面乳-详情页', '胶囊咖啡机-商详', '小何吹风机-商详', '电商详情页视觉练习'].map((title, index) => ({ id: `fallback-image-${index + 1}`, type: 'image' as const, title, cover: `/ai-portfolio/e-commerce/电商详情页-${index + 1}.webp`, description: 'AI视觉内容个人练习' })),
+  ...['产品展示', '产品展示（外贸版）', '拜年视频', '新年祝福类', '知识类博主 02', '知识类博主'].map((title, index) => ({ id: `fallback-video-${index + 1}`, type: 'video' as const, title, cover: `/covers/cover-${(index % 6) + 1}.webp`, description: '视频作品个人练习' })),
 ];
 
 const isDefaultItem = (item: PortfolioItem) => /^(text|image|video)-\d+$/.test(item.id);
