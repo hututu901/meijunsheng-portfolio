@@ -434,3 +434,34 @@
     overflow-wrap: anywhere;
   }
 }
+
+@media (max-width: 760px) {
+  .showcase-carousel {
+    padding: 0 32px 38px !important;
+  }
+
+  .showcase-carousel-stage {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .showcase-carousel-stage .showcase-card {
+    display: none !important;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
+    transform: none !important;
+  }
+
+  .showcase-carousel-stage .showcase-card.showcase-card-active {
+    display: block !important;
+    pointer-events: auto !important;
+  }
+
+  .showcase-carousel-stage .showcase-card-visual {
+    aspect-ratio: 4 / 3 !important;
+  }
+}
