@@ -13,7 +13,21 @@
 
   .showcase-carousel-stage .showcase-card.showcase-card-active {
     display: block !important;
+    position: relative !important;
+    z-index: 3 !important;
+    visibility: visible !important;
     pointer-events: auto !important;
+  }
+
+  .revision-portfolio-page .showcase-carousel-stage {
+    display: block !important;
+    width: 100% !important;
+    min-height: 430px !important;
+  }
+
+  .revision-portfolio-page .showcase-card-active .showcase-card-visual {
+    display: block !important;
+    min-height: 250px !important;
   }
 
   .showcase-card-visual > img,
