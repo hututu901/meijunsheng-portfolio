@@ -22,7 +22,26 @@
   .revision-portfolio-page .showcase-carousel-stage {
     display: block !important;
     width: 100% !important;
+    height: auto !important;
     min-height: 430px !important;
+    overflow: visible !important;
+  }
+
+  .revision-portfolio-page .showcase-carousel {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-right: 34px !important;
+    padding-left: 34px !important;
+    overflow: visible !important;
+  }
+
+  .revision-portfolio-page .showcase-card-active {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    left: 0 !important;
+    transform: none !important;
   }
 
   .revision-portfolio-page .showcase-card-active .showcase-card-visual {
@@ -101,8 +120,12 @@
   }
 
   .revision-portfolio-page .revision-portfolio-head {
-    display: block !important;
-    margin-bottom: 88px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: end !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-bottom: 54px !important;
   }
 
   .revision-portfolio-page .revision-portfolio-head > div {
@@ -116,11 +139,12 @@
   }
 
   .revision-portfolio-page .revision-portfolio-head > button {
-    display: flex !important;
+    display: inline-flex !important;
     justify-content: flex-end !important;
-    width: 100% !important;
-    margin: 20px 0 0 !important;
-    padding-right: 6px !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 7px 0 !important;
+    white-space: nowrap !important;
   }
 
   .revision-portfolio-page .showcase-carousel {
