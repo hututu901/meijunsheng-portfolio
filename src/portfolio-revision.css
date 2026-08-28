@@ -261,6 +261,12 @@
 .archive-card-visual > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .archive-card-visual .showcase-placeholder { min-height: 100%; }
 .archive-card-visual > .showcase-card-number { top: 16px; left: 18px; }
+
+/* Work cards use the title as the only identifier. */
+.revision-index,
+.revision-cover-number,
+.showcase-card-number,
+.showcase-placeholder > span { display: none !important; }
 .archive-card-visual > button { position: absolute; right: 16px; bottom: 16px; display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 15px; border: 0; border-radius: 999px; color: #fff; background: #426dc5; font-size: .8rem; font-weight: 900; opacity: 0; transform: translateY(7px); transition: opacity .3s ease, transform .3s ease; }
 .archive-card:hover .archive-card-visual > button,.archive-card:focus-within .archive-card-visual > button { opacity: 1; transform: translateY(0); }
 .archive-card-copy { min-height: 82px; display: grid; align-content: center; padding: 16px 18px 18px; }
