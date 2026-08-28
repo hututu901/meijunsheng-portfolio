@@ -15,3 +15,11 @@
   padding-right: 8px;
   text-align: left;
 }
+.portfolio-manage-grid > button {
+  touch-action: none;
+}
+
+.portfolio-manage-grid > button.is-touch-dragging {
+  opacity: .58;
+  transform: scale(.98);
+}

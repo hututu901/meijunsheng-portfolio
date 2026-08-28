@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FileText, Image, Upload, Video, X } from 'lucide-react';
 import { PortfolioItem, PortfolioType, readPortfolio, readPortfolioAsync, sortPortfolioItems, writePortfolio, writePortfolioCloud } from './PortfolioRevision';
 import { isSupabaseConfigured, uploadPortfolioFile } from './supabasePortfolio';
@@ -67,6 +67,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
   const [publishMessage, setPublishMessage] = useState('');
   const [menu, setMenu] = useState<{ item: PortfolioItem; x: number; y: number } | null>(null);
   const [previewItem, setPreviewItem] = useState<PortfolioItem | null>(null);
+  const touchDragRef = useRef<{ sourceId: string; targetId: string } | null>(null);
   const save = async (next: PortfolioItem[]) => { const ordered = sortPortfolioItems(next); setItems(ordered); if (isSupabaseConfigured && getAuthSession()) { try { await writePortfolioCloud(ordered); setPublishMessage('云端内容已保存。'); } catch { setPublishMessage('本地已保存，但云端保存失败，请检查 Supabase 配置。'); } } else writePortfolio(ordered); };
 
   const chooseTextFile = async (file: File | null) => {
@@ -153,6 +154,38 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     save([...items.filter(item => item.type !== source.type), ...reordered]);
     setPublishMessage('作品顺序已更新。');
   };
+  const reorderByTouch = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) return;
+    const source = items.find(item => item.id === sourceId);
+    const target = items.find(item => item.id === targetId);
+    if (!source || !target || source.type !== target.type) return;
+    const typed = items.filter(item => item.type === source.type);
+    const from = typed.findIndex(item => item.id === sourceId);
+    const to = typed.findIndex(item => item.id === targetId);
+    typed.splice(from, 1);
+    typed.splice(to, 0, source);
+    const manualOrderTime = Date.now();
+    const reordered = typed.map((item, index) => ({ ...item, updatedAt: manualOrderTime + typed.length - index }));
+    void save([...items.filter(item => item.type !== source.type), ...reordered]);
+    setPublishMessage('作品顺序已更新。');
+  };
+  const touchStart = (event: React.TouchEvent<HTMLButtonElement>, id: string) => {
+    touchDragRef.current = { sourceId: id, targetId: id };
+    event.currentTarget.classList.add('is-touch-dragging');
+  };
+  const touchMove = (event: React.TouchEvent<HTMLButtonElement>) => {
+    if (!touchDragRef.current) return;
+    event.preventDefault();
+    const point = event.touches[0];
+    const target = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('[data-portfolio-id]');
+    if (target?.dataset.portfolioId) touchDragRef.current.targetId = target.dataset.portfolioId;
+  };
+  const touchEnd = (event: React.TouchEvent<HTMLButtonElement>) => {
+    event.currentTarget.classList.remove('is-touch-dragging');
+    const drag = touchDragRef.current;
+    touchDragRef.current = null;
+    if (drag) reorderByTouch(drag.sourceId, drag.targetId);
+  };
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
 
   if (mode === 'upload') return <div className="portfolio-admin">
@@ -172,7 +205,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     <p>直接拖动作品卡片调整顺序。右键卡片可查看、修改、替换提示词文稿或删除。</p>
     {(['text', 'image', 'video'] as PortfolioType[]).map(currentType => <section key={currentType}>
       <h4>{labels[currentType]}</h4>
-      <div className="portfolio-manage-grid">{items.filter(item => item.type === currentType).map((item, index) => <button key={item.id} draggable onDragStart={event => startDrag(event, item.id)} onDragOver={event => event.preventDefault()} onDrop={event => drop(event, item.id)} onContextMenu={event => { event.preventDefault(); setMenu({ item, x: event.clientX, y: event.clientY }); }}>
+      <div className="portfolio-manage-grid">{items.filter(item => item.type === currentType).map((item, index) => <button key={item.id} data-portfolio-id={item.id} draggable onDragStart={event => startDrag(event, item.id)} onDragOver={event => event.preventDefault()} onDrop={event => drop(event, item.id)} onTouchStart={event => touchStart(event, item.id)} onTouchMove={touchMove} onTouchEnd={touchEnd} onContextMenu={event => { event.preventDefault(); setMenu({ item, x: event.clientX, y: event.clientY }); }}>
         <span>{String(index + 1).padStart(2, '0')}</span>{item.cover ? <img src={item.cover} alt="" /> : currentType === 'text' ? <FileText size={24} /> : currentType === 'image' ? <Image size={24} /> : <Video size={24} />}<strong>{item.title}</strong>
       </button>)}</div>
     </section>)}

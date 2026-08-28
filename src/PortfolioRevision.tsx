@@ -46,6 +46,10 @@ export const displayPortfolioItems = (items: PortfolioItem[], type: PortfolioTyp
   const actual = items.filter(item => item.type === type && !isPlaceholderItem(item));
   return actual.length >= 6 ? actual : [...actual, ...blankItems(type, 6 - actual.length, actual.length)];
 };
+export const displayAllPortfolioItems = (items: PortfolioItem[]) => {
+  const actual = items.filter(item => !isPlaceholderItem(item));
+  return actual.length >= 6 ? actual : [...actual, ...blankItems('text', 6 - actual.length, actual.length)];
+};
 
 const openPortfolioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
   const request = window.indexedDB.open(portfolioDbName, 1);
@@ -275,7 +279,7 @@ export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?
       window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior });
     };
   }, []);
-  const filtered = type === 'all' ? (['text', 'image', 'video'] as PortfolioType[]).flatMap(current => displayPortfolioItems(items, current)) : displayPortfolioItems(items, type);
+  const filtered = type === 'all' ? displayAllPortfolioItems(items) : displayPortfolioItems(items, type);
   return <div className="revision-archive" role="dialog" aria-modal="true"><button className="revision-backdrop" onClick={close} aria-label="关闭作品仓库" /><section className="revision-archive-panel"><button className="revision-close" onClick={close} aria-label="关闭"><X size={20} /></button><h2>作品仓库</h2><nav>{(['all', 'text', 'image', 'video'] as const).map(tab => <button key={tab} className={tab === type ? 'is-active' : ''} onClick={() => setType(tab)}>{tab === 'all' ? '全部作品' : labels[tab]}</button>)}</nav><div className="archive-showcase-grid">{filtered.map((item, index) => <ArchiveCard item={item} index={index} key={item.id} onOpen={() => onOpen(item)} />)}</div></section></div>;
 }
 
