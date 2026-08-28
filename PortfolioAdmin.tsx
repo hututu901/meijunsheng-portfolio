@@ -148,7 +148,9 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     const from = typed.findIndex(item => item.id === sourceId);
     const to = typed.findIndex(item => item.id === targetId);
     typed.splice(from, 1); typed.splice(to, 0, source);
-    save([...items.filter(item => item.type !== source.type), ...typed]);
+    const manualOrderTime = Date.now();
+    const reordered = typed.map((item, index) => ({ ...item, updatedAt: manualOrderTime + typed.length - index }));
+    save([...items.filter(item => item.type !== source.type), ...reordered]);
     setPublishMessage('作品顺序已更新。');
   };
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
