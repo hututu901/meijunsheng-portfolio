@@ -703,23 +703,23 @@ function App() {
                   </article>
                   <div className="signal-bars">
                     <div className="signal-bar" style={{ '--level': '88%' } as CSSProperties}>
-                      <span>内容策划</span>
-                      <em>选题 / 脚本 / 发布节奏</em>
+                      <span>AI视觉策划</span>
+                      <em>画面方向 / 场景构思 / 信息表达</em>
                     </div>
                     <div className="signal-bar" style={{ '--level': '82%' } as CSSProperties}>
-                      <span>影像执行</span>
-                      <em>拍摄 / 剪辑 / 包装适配</em>
+                      <span>提示词设计</span>
+                      <em>产品展示 / 双语提示词 / 画面控制</em>
                     </div>
                     <div className="signal-bar" style={{ '--level': '76%' } as CSSProperties}>
-                      <span>增长复盘</span>
-                      <em>投放 / 数据 / 转化路径</em>
+                      <span>生成效果迭代</span>
+                      <em>效果验证 / 提示词调整 / 多轮优化</em>
                     </div>
                   </div>
                   <div className="platform-strip" aria-label="平台覆盖">
-                    <span>抖音</span>
-                    <span>小红书</span>
-                    <span>视频号</span>
-                    <span>公众号</span>
+                    <span>即梦</span>
+                    <span>豆包</span>
+                    <span>ComfyUI</span>
+                    <span>扣子</span>
                   </div>
                 </div>
               </div>
