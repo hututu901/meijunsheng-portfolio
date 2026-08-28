@@ -5585,6 +5585,16 @@ html.is-eye-locked body { overscroll-behavior: contain !important; }
   .eye-copy { width: 100% !important; text-align: left !important; }
   .eye-copy h2 { font-size: clamp(2.3rem, 10vw, 3.4rem) !important; }
   .snake-game-board { width: min(92vw, 420px) !important; margin: 0 auto !important; }
+
+  /* Keep the chat composer stable when a typing reply is added. */
+  .wechat-body { min-width: 0 !important; overflow-x: hidden !important; }
+  .chat-row.typing-row { grid-template-columns: 36px minmax(0, 1fr) !important; min-width: 0 !important; }
+  .chat-row.typing-row p { min-width: 0 !important; width: auto !important; max-width: none !important; white-space: nowrap !important; overflow: hidden !important; }
+  .typing-dots { display: inline-flex !important; width: 30px !important; min-width: 30px !important; justify-content: center !important; }
+  .quick-send-bar { width: 100% !important; min-width: 0 !important; flex-wrap: nowrap !important; }
+  .quick-send-bar button { min-width: 0 !important; white-space: nowrap !important; }
+  .wechat-input-line { width: 100% !important; min-width: 0 !important; }
+  .wechat-input-line > span { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
 }
 
 /* Mobile home gate: center the complete unlock block and remove icon spacing. */

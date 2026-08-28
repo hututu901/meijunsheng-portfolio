@@ -283,6 +283,17 @@
 .archive-card-copy { min-height: 68px; padding: 12px 14px; }
 }
 
+/* Mobile reading and archive typography stays compact and scannable. */
+@media (max-width: 760px) {
+  .revision-modal-panel:has(.revision-modal-text) h3 { margin: 8px 0 16px; font-size: 1.45rem; line-height: 1.15; }
+  .revision-modal-text .revision-text-reader { padding: 22px 18px 30px; }
+  .revision-modal-text .revision-text-reader header { font-size: .72rem; }
+  .revision-modal-text .revision-text-body p { font-size: .82rem; line-height: 1.72; }
+  .revision-archive-panel > h2 { font-size: 1.85rem; line-height: 1.1; }
+  .revision-archive-panel > nav button { font-size: .78rem; }
+  .archive-card-copy h3 { font-size: .76rem; line-height: 1.3; }
+}
+
 /* Definitive neutral card finish: no blue outlines anywhere on work cards. */
 .showcase-card,
 .archive-card,
