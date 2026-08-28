@@ -88,7 +88,16 @@
 
   .revision-portfolio-page .showcase-card-active .showcase-card-visual {
     display: block !important;
-    min-height: 250px !important;
+    aspect-ratio: 16 / 9 !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .revision-portfolio-page .showcase-card-active .showcase-card-visual > img,
+  .revision-portfolio-page .showcase-card-active .showcase-card-visual > video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
 
   .showcase-card-visual > img,
