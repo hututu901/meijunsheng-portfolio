@@ -14,8 +14,8 @@ const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(nam
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
 
 export const defaultPortfolio: PortfolioItem[] = [
-  ...Array.from({ length: 8 }, (_, index) => ({ id: `text-${index + 1}`, type: 'text' as const, title: `提示词工程 ${String(index + 1).padStart(2, '0')}`, description: '提示词封面等待上传' })),
-  ...Array.from({ length: 8 }, (_, index) => ({ id: `image-${index + 1}`, type: 'image' as const, title: `图片作品 ${String(index + 1).padStart(2, '0')}`, description: '图片封面等待上传' })),
+  ...Array.from({ length: 6 }, (_, index) => ({ id: `text-${index + 1}`, type: 'text' as const, title: `提示词工程 ${String(index + 1).padStart(2, '0')}`, description: '提示词封面等待上传' })),
+  ...Array.from({ length: 6 }, (_, index) => ({ id: `image-${index + 1}`, type: 'image' as const, title: `图片作品 ${String(index + 1).padStart(2, '0')}`, description: '图片封面等待上传' })),
   { id: 'video-1', type: 'video', title: '视频作品 01' },
   { id: 'video-2', type: 'video', title: '视频作品 02' },
   { id: 'video-3', type: 'video', title: '视频作品 03' },
@@ -25,6 +25,7 @@ export const defaultPortfolio: PortfolioItem[] = [
 ];
 
 const isDefaultItem = (item: PortfolioItem) => /^(text|image|video)-\d+$/.test(item.id);
+export const isPlaceholderItem = (item: PortfolioItem) => isDefaultItem(item) && !item.file && !item.cover && !item.documentContent;
 const portfolioDbName = 'meijunsheng-portfolio-db';
 const portfolioDbStore = 'portfolio';
 const portfolioDbKey = 'items';
@@ -38,7 +39,13 @@ const normalizePortfolio = (items: PortfolioItem[]) => sortPortfolioItems(items.
   const migratedTitle = item.type === 'text' && /^文字作品 \d+$/.test(item.title) ? item.title.replace('文字作品', '提示词工程') : item.title;
   const legacyTime = isDefaultItem(item) ? 0 : 1000 + index;
   return { ...item, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime };
-}));
+})).filter(item => !isPlaceholderItem(item) || Number(item.id.split('-')[1]) <= 6);
+
+const blankItems = (type: PortfolioType, count: number, start: number) => Array.from({ length: count }, (_, index) => ({ id: `blank-${type}-${start + index + 1}`, type, title: '', description: '作品尚未上传' }));
+export const displayPortfolioItems = (items: PortfolioItem[], type: PortfolioType) => {
+  const actual = items.filter(item => item.type === type && !isPlaceholderItem(item));
+  return actual.length >= 6 ? actual : [...actual, ...blankItems(type, 6 - actual.length, actual.length)];
+};
 
 const openPortfolioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
   const request = window.indexedDB.open(portfolioDbName, 1);
@@ -126,7 +133,7 @@ function ShowcaseCard({ item, index, offset, onOpen, onShift }: { item: Portfoli
     <div className="showcase-card-visual">
       {item.cover ? <img src={item.cover} alt="" /> : item.type === 'video' && item.preview ? <video src={assetPath(item.preview)} muted loop playsInline preload="metadata" ref={node => { if (node && hovered && offset === 0) void node.play(); if (node && (!hovered || offset !== 0)) { node.pause(); node.currentTime = 0; } }} /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={34} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={34} strokeWidth={1.15} /> : <Play size={34} strokeWidth={1.15} />}</div>}
       <span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>
-      <button className="showcase-card-action" type="button" onClick={onOpen} tabIndex={offset === 0 ? 0 : -1}>点击预览 <ArrowUpRight size={16} /></button>
+      {item.title ? <button className="showcase-card-action" type="button" onClick={onOpen} tabIndex={offset === 0 ? 0 : -1}>点击预览 <ArrowUpRight size={16} /></button> : null}
     </div>
     <div className="showcase-card-copy"><h3>{item.title}</h3></div>
   </article>;
@@ -228,7 +235,7 @@ function PortfolioSectionLegacy({ type, id }: { type: PortfolioType; id: string 
   const [active, setActive] = useState<PortfolioItem | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
-  const typed = items.filter(item => item.type === type);
+  const typed = items.filter(item => item.type === type && !isPlaceholderItem(item));
   const featuredCount: Record<PortfolioType, number> = { text: 4, image: 4, video: 3 };
   const featured = typed.slice(0, featuredCount[type]);
   return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><span>{labels[type]}</span><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><div className="revision-grid">{featured.map((item, index) => <Tile item={item} index={index} key={item.id} onOpen={() => setActive(item)} />)}</div>{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { setArchiveOpen(false); setActive(item); }} /> : null}</section>;
@@ -239,8 +246,8 @@ export function PortfolioSection({ type, id }: { type: PortfolioType; id: string
   const [active, setActive] = useState<PortfolioItem | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
-  const typed = items.filter(item => item.type === type);
-  return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={typed.slice(0, 6)} onOpen={item => setActive(item)} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { setArchiveOpen(false); setActive(item); }} /> : null}</section>;
+  const typed = items.filter(item => item.type === type && !isPlaceholderItem(item));
+  return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={displayPortfolioItems(items, type).slice(0, 6)} onOpen={item => { if (item.title) setActive(item); }} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { setArchiveOpen(false); setActive(item); }} /> : null}</section>;
 }
 
 export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?: PortfolioType; close: () => void; onOpen: (item: PortfolioItem) => void }) {
@@ -268,14 +275,14 @@ export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?
       window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior });
     };
   }, []);
-  const filtered = type === 'all' ? items : items.filter(item => item.type === type);
+  const filtered = type === 'all' ? (['text', 'image', 'video'] as PortfolioType[]).flatMap(current => displayPortfolioItems(items, current)) : displayPortfolioItems(items, type);
   return <div className="revision-archive" role="dialog" aria-modal="true"><button className="revision-backdrop" onClick={close} aria-label="关闭作品仓库" /><section className="revision-archive-panel"><button className="revision-close" onClick={close} aria-label="关闭"><X size={20} /></button><h2>作品仓库</h2><nav>{(['all', 'text', 'image', 'video'] as const).map(tab => <button key={tab} className={tab === type ? 'is-active' : ''} onClick={() => setType(tab)}>{tab === 'all' ? '全部作品' : labels[tab]}</button>)}</nav><div className="archive-showcase-grid">{filtered.map((item, index) => <ArchiveCard item={item} index={index} key={item.id} onOpen={() => onOpen(item)} />)}</div></section></div>;
 }
 
 function ArchiveCard({ item, index, onOpen }: { item: PortfolioItem; index: number; onOpen: () => void }) {
-  return <article className="archive-card">
-    <div className="archive-card-visual">{item.cover ? <img src={item.cover} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span><button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button></div>
-    <div className="archive-card-copy"><h3>{item.title}</h3></div>
+  return <article className={`archive-card${item.title ? '' : ' archive-card-empty'}`}>
+    <div className="archive-card-visual">{item.cover ? <img src={item.cover} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>{item.title ? <button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button> : null}</div>
+    <div className="archive-card-copy"><h3>{item.title || '空白作品位'}</h3></div>
   </article>;
 }
 
