@@ -10,6 +10,7 @@ export type PortfolioItem = { id: string; type: PortfolioType; title: string; fi
 
 const labels: Record<PortfolioType, string> = { text: '提示词工程', image: '图片作品', video: '视频作品' };
 const storageKey = 'meijunsheng-revision-portfolio-v3';
+const legacyStorageKey = 'meijunsheng-revision-portfolio-v2';
 const video = (name: string) => `/videos/${encodeURIComponent(name)}`;
 const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(name)}`;
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
@@ -28,10 +29,11 @@ export const hasPortfolioPreviewContent = (item: PortfolioItem) => {
   if (item.type === 'image') return Boolean(item.file || item.cover);
   return Boolean(item.file);
 };
-export const isPlaceholderItem = (item: PortfolioItem) => isBlankItem(item) || (isDefaultItem(item) && !hasPortfolioPreviewContent(item));
+export const isPlaceholderItem = (item: PortfolioItem) => isBlankItem(item);
 const portfolioDbName = 'meijunsheng-portfolio-db';
 const portfolioDbStore = 'portfolio';
 const portfolioDbKey = 'items-v3';
+const legacyPortfolioDbKey = 'items';
 let portfolioCache: PortfolioItem[] | null = null;
 export const sortPortfolioItems = (items: PortfolioItem[]) => items
   .map((item, index) => ({ item, index }))
@@ -61,11 +63,11 @@ const openPortfolioDb = () => new Promise<IDBDatabase>((resolve, reject) => {
   request.onerror = () => reject(request.error);
 });
 
-const readIndexedPortfolio = async (): Promise<PortfolioItem[] | null> => {
+const readIndexedPortfolioByKey = async (key: string): Promise<PortfolioItem[] | null> => {
   try {
     const db = await openPortfolioDb();
     const value = await new Promise<PortfolioItem[] | undefined>((resolve, reject) => {
-      const request = db.transaction(portfolioDbStore, 'readonly').objectStore(portfolioDbStore).get(portfolioDbKey);
+      const request = db.transaction(portfolioDbStore, 'readonly').objectStore(portfolioDbStore).get(key);
       request.onsuccess = () => resolve(request.result as PortfolioItem[] | undefined);
       request.onerror = () => reject(request.error);
     });
@@ -73,6 +75,8 @@ const readIndexedPortfolio = async (): Promise<PortfolioItem[] | null> => {
     return value?.length ? normalizePortfolio(value) : null;
   } catch { return null; }
 };
+const readIndexedPortfolio = async (): Promise<PortfolioItem[] | null> =>
+  await readIndexedPortfolioByKey(portfolioDbKey) || await readIndexedPortfolioByKey(legacyPortfolioDbKey);
 
 const persistIndexedPortfolio = async (items: PortfolioItem[]) => {
   try {
@@ -89,7 +93,7 @@ const persistIndexedPortfolio = async (items: PortfolioItem[]) => {
 export const readPortfolio = (): PortfolioItem[] => {
   if (portfolioCache) return portfolioCache;
   try {
-    const stored = JSON.parse(window.localStorage.getItem(storageKey) || 'null') as PortfolioItem[] | null;
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) || window.localStorage.getItem(legacyStorageKey) || 'null') as PortfolioItem[] | null;
     return normalizePortfolio(stored || defaultPortfolio);
   } catch { return normalizePortfolio(defaultPortfolio); }
 };
