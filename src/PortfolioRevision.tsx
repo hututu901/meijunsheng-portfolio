@@ -20,14 +20,25 @@ export const isLegacyStaticCover = (path?: string) => Boolean(path && legacyStat
 const stripLegacyStaticCover = (item: PortfolioItem): PortfolioItem =>
   isLegacyStaticCover(item.cover) ? { ...item, cover: undefined } : item;
 
+const promptDocument = (name: string) => `/ai-portfolio/提示词/${encodeURIComponent(name)}`;
+const fallbackVideoWorks = [
+  { title: '产品展示', file: '产品展示.mp4', preview: '产品展示-preview.mp4' },
+  { title: '产品展示（外贸版）', file: '产品展示（外贸版）.mp4', preview: '产品展示（外贸版）-preview.mp4' },
+  { title: '拜年视频', file: '拜年视频.mp4', preview: '拜年视频-preview.mp4' },
+  { title: '新年祝福类', file: '新年祝福类.mp4', preview: '新年祝福类-preview.mp4' },
+  { title: '知识类博主 02', file: '知识类博主 (2).mp4', preview: '知识类博主 (2)-preview.mp4' },
+  { title: '知识类博主', file: '知识类博主.mp4', preview: '知识类博主-preview.mp4' },
+] as const;
+
 export const defaultPortfolio: PortfolioItem[] = [
-  ...['小何料理机-实际API双语生图提示词', '小何无线蓝牙耳机-商详双语提示词', '小何洁面乳-双语提示词', '小何胶囊咖啡机_商详提示词双语', '小何负离子吹风机_双语提示词', '一次性咖啡杯提示词练习'].map((title, index) => ({ id: `fallback-text-${index + 1}`, type: 'text' as const, title, description: 'AI视觉提示词个人练习' })),
+  ...['小何料理机-实际API双语生图提示词', '小何无线蓝牙耳机-商详双语提示词', '小何洁面乳-双语提示词', '小何胶囊咖啡机_商详提示词双语', '小何负离子吹风机_双语提示词', '一次性咖啡杯提示词练习'].map((title, index) => ({ id: `fallback-text-${index + 1}`, type: 'text' as const, title, file: title === '一次性咖啡杯提示词练习' ? promptDocument('咖啡杯提示词.docx') : undefined, description: 'AI视觉提示词个人练习' })),
   ...['小何料理机-商详', '小何蓝牙耳机-商详', '小何洁面乳-详情页', '胶囊咖啡机-商详', '小何吹风机-商详', '电商详情页视觉练习'].map((title, index) => ({ id: `fallback-image-${index + 1}`, type: 'image' as const, title, cover: `/ai-portfolio/e-commerce/电商详情页-${index + 1}.webp`, description: 'AI视觉内容个人练习' })),
-  ...['产品展示', '产品展示（外贸版）', '拜年视频', '新年祝福类', '知识类博主 02', '知识类博主'].map((title, index) => ({ id: `fallback-video-${index + 1}`, type: 'video' as const, title, description: '视频作品个人练习' })),
+  ...fallbackVideoWorks.map((work, index) => ({ id: `fallback-video-${index + 1}`, type: 'video' as const, title: work.title, file: video(work.file), preview: videoPreview(work.preview), description: '视频作品个人练习' })),
 ];
 
 const isDefaultItem = (item: PortfolioItem) => /^(?:fallback-)?(?:text|image|video)-\d+$/.test(item.id);
 const isBlankItem = (item: PortfolioItem) => /^blank-(?:text|image|video)-\d+$/.test(item.id);
+const fallbackPortfolioById = new Map(defaultPortfolio.map(item => [item.id, item]));
 export const hasPortfolioPreviewContent = (item: PortfolioItem) => {
   if (!item.title) return false;
   if (item.type === 'text') return Boolean(item.documentContent?.trim() || item.file);
@@ -46,9 +57,20 @@ export const sortPortfolioItems = (items: PortfolioItem[]) => items
   .map(entry => entry.item);
 
 const normalizePortfolio = (items: PortfolioItem[]) => sortPortfolioItems(items.map((item, index) => {
+  const fallback = isDefaultItem(item) ? fallbackPortfolioById.get(item.id) : undefined;
+  const hydrated = fallback ? {
+    ...fallback,
+    ...item,
+    file: item.file || fallback.file,
+    cover: item.cover && !isLegacyStaticCover(item.cover) ? item.cover : fallback.cover,
+    preview: item.preview || fallback.preview,
+    description: item.description || fallback.description,
+    textPreview: item.textPreview || fallback.textPreview,
+    documentContent: item.documentContent || fallback.documentContent,
+  } : item;
   const migratedTitle = item.type === 'text' && /^文字作品 \d+$/.test(item.title) ? item.title.replace('文字作品', '提示词工程') : item.title;
   const legacyTime = isDefaultItem(item) ? 0 : 1000 + index;
-  return stripLegacyStaticCover({ ...item, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime });
+  return stripLegacyStaticCover({ ...hydrated, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime });
 })).filter(item => !isPlaceholderItem(item));
 
 const blankItems = (type: PortfolioType, count: number, start: number) => Array.from({ length: count }, (_, index) => ({ id: `blank-${type}-${start + index + 1}`, type, title: '', description: '作品尚未上传' }));
