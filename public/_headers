@@ -8,3 +8,11 @@
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+/covers/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  CDN-Cache-Control: no-cache
+
+/ai-portfolio/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  CDN-Cache-Control: no-cache

@@ -4,6 +4,7 @@ import { isPlaceholderItem, PortfolioItem, PortfolioType, readPortfolio, readPor
 import { deleteCloudPortfolio, isSupabaseConfigured, uploadPortfolioFile } from './supabasePortfolio';
 import { getAuthSession } from './supabaseAuth';
 import { assetPath } from './data';
+import { readDocxTextFromFile } from './docxText';
 import './portfolio-admin.css';
 
 const labels: Record<PortfolioType, string> = { text: '提示词工程', image: '图片作品', video: '视频作品' };
@@ -15,46 +16,6 @@ const toDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
 });
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
 const fileTitle = (file: File) => file.name.replace(/\.[^/.]+$/, '').trim();
-
-/** Extract Word paragraphs in-browser so the preview has real readable content. */
-async function readDocxText(file: File) {
-  if (!file.name.toLowerCase().endsWith('.docx')) return '';
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  let eocd = -1;
-  for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset -= 1) {
-    if (view.getUint32(offset, true) === 0x06054b50) { eocd = offset; break; }
-  }
-  if (eocd < 0) return '';
-  let cursor = view.getUint32(eocd + 16, true);
-  const entries = view.getUint16(eocd + 10, true);
-  const decoder = new TextDecoder();
-  for (let index = 0; index < entries; index += 1) {
-    if (view.getUint32(cursor, true) !== 0x02014b50) break;
-    const method = view.getUint16(cursor + 10, true);
-    const compressedSize = view.getUint32(cursor + 20, true);
-    const nameLength = view.getUint16(cursor + 28, true);
-    const extraLength = view.getUint16(cursor + 30, true);
-    const commentLength = view.getUint16(cursor + 32, true);
-    const localOffset = view.getUint32(cursor + 42, true);
-    const name = decoder.decode(bytes.slice(cursor + 46, cursor + 46 + nameLength));
-    cursor += 46 + nameLength + extraLength + commentLength;
-    if (name !== 'word/document.xml' || view.getUint32(localOffset, true) !== 0x04034b50) continue;
-    const localNameLength = view.getUint16(localOffset + 26, true);
-    const localExtraLength = view.getUint16(localOffset + 28, true);
-    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
-    const data = bytes.slice(dataStart, dataStart + compressedSize);
-    const xml = method === 0
-      ? decoder.decode(data)
-      : await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
-    const doc = new DOMParser().parseFromString(xml, 'application/xml');
-    return Array.from(doc.getElementsByTagNameNS('*', 'p'))
-      .map(paragraph => Array.from(paragraph.getElementsByTagNameNS('*', 't')).map(node => node.textContent || '').join('').trim())
-      .filter(Boolean)
-      .join('\n\n');
-  }
-  return '';
-}
 
 export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
   const [items, setItems] = useState<PortfolioItem[]>(readPortfolio);
@@ -82,7 +43,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
       return;
     }
     try {
-      const content = await readDocxText(file);
+      const content = await readDocxTextFromFile(file);
       setDocumentContent(content);
       setPublishMessage(content ? '已读取 Word 正文。作品描述仍由你手动填写，只显示在标题下方。' : '没有从该文档读取到正文，请确认文件是有效的 .docx。');
     } catch {
@@ -95,7 +56,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.docx')) { setPublishMessage('请使用 .docx 文件替换文稿。'); return; }
     try {
-      const content = await readDocxText(file);
+      const content = await readDocxTextFromFile(file);
       if (!content) { setPublishMessage('未读取到提示词正文，请选择含有文字的 .docx 文件。'); return; }
       const now = Date.now();
       const remoteFile = isSupabaseConfigured ? await uploadPortfolioFile(file, 'text') : file.name;
@@ -218,7 +179,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     {(['text', 'image', 'video'] as PortfolioType[]).map(currentType => <section key={currentType}>
       <h4>{labels[currentType]}</h4>
       <div className="portfolio-manage-grid">{items.filter(item => item.type === currentType && !isPlaceholderItem(item)).map((item, index) => <button key={item.id} data-portfolio-id={item.id} className={`${dragId === item.id ? 'is-dragging' : ''}${dragTargetId === item.id ? ' is-drag-target' : ''}`} draggable onDragStart={event => startDrag(event, item.id)} onDragEnd={() => { setDragId(null); setDragTargetId(null); }} onDragEnter={() => setDragTargetId(item.id)} onDragOver={event => { event.preventDefault(); setDragTargetId(item.id); }} onDrop={event => drop(event, item.id)} onTouchStart={event => touchStart(event, item.id)} onTouchMove={touchMove} onTouchEnd={touchEnd} onContextMenu={event => { event.preventDefault(); setMenu({ item, x: event.clientX, y: event.clientY }); }}>
-        <span>{String(index + 1).padStart(2, '0')}</span>{item.cover ? <img src={item.cover} alt="" /> : currentType === 'text' ? <FileText size={24} /> : currentType === 'image' ? <Image size={24} /> : <Video size={24} />}<strong>{item.title}</strong>
+        <span>{String(index + 1).padStart(2, '0')}</span>{item.cover ? <img src={mediaPath(item.cover)} alt="" /> : currentType === 'text' ? <FileText size={24} /> : currentType === 'image' ? <Image size={24} /> : <Video size={24} />}<strong>{item.title}</strong>
       </button>)}</div>
     </section>)}
     {publishMessage ? <p className="portfolio-publish-message" role="status">{publishMessage}</p> : null}

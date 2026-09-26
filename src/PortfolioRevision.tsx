@@ -3,12 +3,13 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, FileText, Image, Play, X, ZoomIn, 
 import { assetPath } from './data';
 import './portfolio-revision.css';
 import { fetchCloudPortfolio, isSupabaseConfigured, upsertCloudPortfolio } from './supabasePortfolio';
+import { readDocxTextFromUrl } from './docxText';
 
 export type PortfolioType = 'text' | 'image' | 'video';
 export type PortfolioItem = { id: string; type: PortfolioType; title: string; file?: string; cover?: string; preview?: string; description?: string; textPreview?: string; documentContent?: string; createdAt?: number; updatedAt?: number };
 
 const labels: Record<PortfolioType, string> = { text: '提示词工程', image: '图片作品', video: '视频作品' };
-const storageKey = 'meijunsheng-revision-portfolio-v2';
+const storageKey = 'meijunsheng-revision-portfolio-v3';
 const video = (name: string) => `/videos/${encodeURIComponent(name)}`;
 const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(name)}`;
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
@@ -19,11 +20,18 @@ export const defaultPortfolio: PortfolioItem[] = [
   ...['产品展示', '产品展示（外贸版）', '拜年视频', '新年祝福类', '知识类博主 02', '知识类博主'].map((title, index) => ({ id: `fallback-video-${index + 1}`, type: 'video' as const, title, cover: `/covers/cover-${(index % 6) + 1}.webp`, description: '视频作品个人练习' })),
 ];
 
-const isDefaultItem = (item: PortfolioItem) => /^(text|image|video)-\d+$/.test(item.id);
-export const isPlaceholderItem = (item: PortfolioItem) => isDefaultItem(item) && !item.file && !item.cover && !item.documentContent;
+const isDefaultItem = (item: PortfolioItem) => /^(?:fallback-)?(?:text|image|video)-\d+$/.test(item.id);
+const isBlankItem = (item: PortfolioItem) => /^blank-(?:text|image|video)-\d+$/.test(item.id);
+export const hasPortfolioPreviewContent = (item: PortfolioItem) => {
+  if (!item.title) return false;
+  if (item.type === 'text') return Boolean(item.documentContent?.trim() || item.file);
+  if (item.type === 'image') return Boolean(item.file || item.cover);
+  return Boolean(item.file);
+};
+export const isPlaceholderItem = (item: PortfolioItem) => isBlankItem(item) || (isDefaultItem(item) && !hasPortfolioPreviewContent(item));
 const portfolioDbName = 'meijunsheng-portfolio-db';
 const portfolioDbStore = 'portfolio';
-const portfolioDbKey = 'items';
+const portfolioDbKey = 'items-v3';
 let portfolioCache: PortfolioItem[] | null = null;
 export const sortPortfolioItems = (items: PortfolioItem[]) => items
   .map((item, index) => ({ item, index }))
@@ -34,7 +42,7 @@ const normalizePortfolio = (items: PortfolioItem[]) => sortPortfolioItems(items.
   const migratedTitle = item.type === 'text' && /^文字作品 \d+$/.test(item.title) ? item.title.replace('文字作品', '提示词工程') : item.title;
   const legacyTime = isDefaultItem(item) ? 0 : 1000 + index;
   return { ...item, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime };
-})).filter(item => !isPlaceholderItem(item) || Number(item.id.split('-')[1]) <= 6);
+})).filter(item => !isPlaceholderItem(item));
 
 const blankItems = (type: PortfolioType, count: number, start: number) => Array.from({ length: count }, (_, index) => ({ id: `blank-${type}-${start + index + 1}`, type, title: '', description: '作品尚未上传' }));
 export const displayPortfolioItems = (items: PortfolioItem[], type: PortfolioType) => {
@@ -83,7 +91,7 @@ export const readPortfolio = (): PortfolioItem[] => {
   try {
     const stored = JSON.parse(window.localStorage.getItem(storageKey) || 'null') as PortfolioItem[] | null;
     return normalizePortfolio(stored || defaultPortfolio);
-  } catch { return defaultPortfolio; }
+  } catch { return normalizePortfolio(defaultPortfolio); }
 };
 export const readPortfolioAsync = async (): Promise<PortfolioItem[]> => {
   if (isSupabaseConfigured) {
@@ -111,28 +119,30 @@ export const writePortfolioCloud = async (items: PortfolioItem[]) => {
 
 function Tile({ item, index, onOpen }: { item: PortfolioItem; index: number; onOpen: () => void }) {
   const [hovered, setHovered] = useState(false);
+  const canPreview = hasPortfolioPreviewContent(item);
   return <article className={`revision-tile revision-${item.type} revision-tile-index-${index + 1}`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
     <span className="revision-index">{String(index + 1).padStart(2, '0')}</span>
     <div className="revision-tile-face">
-      {item.cover ? <img src={item.cover} alt="" /> : <>
+      {item.cover ? <img src={mediaPath(item.cover)} alt="" /> : <>
         <span className="revision-cover-number">{String(index + 1).padStart(2, '0')}</span>
         <span className="revision-cover-title">{item.title}</span>
         {item.type === 'video' && item.preview ? <video src={assetPath(item.preview)} muted loop playsInline preload="metadata" ref={node => { if (node && hovered) void node.play(); if (node && !hovered) { node.pause(); node.currentTime = 0; } }} /> : item.type === 'text' ? <FileText className="revision-cover-icon" size={30} strokeWidth={1.2} /> : <Image className="revision-cover-icon" size={30} strokeWidth={1.2} />}
       </>}
     </div>
     <div className="revision-card-info"><span>{labels[item.type]}</span><strong>{item.title}</strong></div>
-    <div className="revision-tile-hover"><span>{String(index + 1).padStart(2, '0')} / {labels[item.type]}</span><strong>{item.title}</strong><button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button></div>
+    <div className="revision-tile-hover"><span>{String(index + 1).padStart(2, '0')} / {labels[item.type]}</span><strong>{item.title}</strong>{canPreview ? <button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button> : null}</div>
   </article>;
 }
 
 function ShowcaseCard({ item, index, offset, onOpen, onShift }: { item: PortfolioItem; index: number; offset: number; onOpen: () => void; onShift: (amount: number) => void }) {
   const [hovered, setHovered] = useState(false);
   const visible = Math.abs(offset) <= 1;
+  const canPreview = hasPortfolioPreviewContent(item);
   return <article className={`showcase-card showcase-card-${offset === 0 ? 'active' : offset < 0 ? 'prev' : 'next'}${visible ? '' : ' is-hidden'}`} style={{ '--showcase-offset': offset } as React.CSSProperties} aria-hidden={!visible} onMouseEnter={() => { setHovered(true); if (offset === -1 || offset === 1) onShift(offset); }} onMouseLeave={() => setHovered(false)}>
     <div className="showcase-card-visual">
-      {item.cover ? <img src={item.cover} alt="" /> : item.type === 'video' && item.preview ? <video src={assetPath(item.preview)} muted loop playsInline preload="metadata" ref={node => { if (node && hovered && offset === 0) void node.play(); if (node && (!hovered || offset !== 0)) { node.pause(); node.currentTime = 0; } }} /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={34} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={34} strokeWidth={1.15} /> : <Play size={34} strokeWidth={1.15} />}</div>}
+      {item.cover ? <img src={mediaPath(item.cover)} alt="" /> : item.type === 'video' && item.preview ? <video src={assetPath(item.preview)} muted loop playsInline preload="metadata" ref={node => { if (node && hovered && offset === 0) void node.play(); if (node && (!hovered || offset !== 0)) { node.pause(); node.currentTime = 0; } }} /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={34} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={34} strokeWidth={1.15} /> : <Play size={34} strokeWidth={1.15} />}</div>}
       <span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>
-      {item.title ? <button className="showcase-card-action" type="button" onClick={onOpen} tabIndex={offset === 0 ? 0 : -1}>点击预览 <ArrowUpRight size={16} /></button> : null}
+      {canPreview ? <button className="showcase-card-action" type="button" onClick={onOpen} tabIndex={offset === 0 ? 0 : -1}>点击预览 <ArrowUpRight size={16} /></button> : null}
     </div>
     <div className="showcase-card-copy"><h3>{item.title}</h3></div>
   </article>;
@@ -155,13 +165,30 @@ function ShowcaseCarousel({ items, onOpen }: { items: PortfolioItem[]; onOpen: (
 }
 
 function TextPreview({ item }: { item: PortfolioItem }) {
-  const content = item.documentContent?.trim();
+  const embeddedContent = item.documentContent?.trim() || '';
+  const [fetchedContent, setFetchedContent] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const content = embeddedContent || fetchedContent.trim();
   useEffect(() => {
     const allowReaderScroll = (event: WheelEvent) => { if ((event.target as HTMLElement)?.closest('.revision-text-reader')) event.stopPropagation(); };
     document.addEventListener('wheel', allowReaderScroll, true);
     return () => document.removeEventListener('wheel', allowReaderScroll, true);
   }, []);
-  return <div className="revision-text-reader"><header><FileText size={24} /><span>提示词正文</span></header>{content ? <div className="revision-text-body">{content.split(/\n{2,}/).map((paragraph, index) => <p key={`${paragraph.slice(0, 20)}-${index}`}>{paragraph}</p>)}</div> : <div className="revision-text-empty"><FileText size={46} strokeWidth={1.2} /><strong>未读取提示词正文</strong><p>请在内容管理中右键该作品，选择“替换提示词文稿”，重新选择 .docx 文件后即可直接预览正文。</p></div>}</div>;
+  useEffect(() => {
+    let ignore = false;
+    setFetchedContent('');
+    if (embeddedContent || !item.file) { setIsFetching(false); return undefined; }
+    setIsFetching(true);
+    readDocxTextFromUrl(mediaPath(item.file)).then(text => {
+      if (!ignore) setFetchedContent(text);
+    }).catch(() => {
+      if (!ignore) setFetchedContent('');
+    }).finally(() => {
+      if (!ignore) setIsFetching(false);
+    });
+    return () => { ignore = true; };
+  }, [embeddedContent, item.file]);
+  return <div className="revision-text-reader"><header><FileText size={24} /><span>提示词正文</span></header>{isFetching ? <div className="revision-text-empty"><FileText size={46} strokeWidth={1.2} /><strong>正在读取文稿</strong><p>正文内容加载中，请稍候。</p></div> : content ? <div className="revision-text-body">{content.split(/\n{2,}/).map((paragraph, index) => <p key={`${paragraph.slice(0, 20)}-${index}`}>{paragraph}</p>)}</div> : <div className="revision-text-empty"><FileText size={46} strokeWidth={1.2} /><strong>暂无可预览正文</strong><p>这件作品还没有可直接预览的正文内容。</p></div>}</div>;
 }
 
 function ImagePreview({ src, title, onReady }: { src: string; title: string; onReady: () => void }) {
@@ -246,7 +273,7 @@ export function PortfolioSection({ type, id }: { type: PortfolioType; id: string
   const [archiveOpen, setArchiveOpen] = useState(false);
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
   const typed = items.filter(item => item.type === type && !isPlaceholderItem(item));
-  return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={displayPortfolioItems(items, type).slice(0, 6)} onOpen={item => { if (item.title) setActive(item); }} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { setArchiveOpen(false); setActive(item); }} /> : null}</section>;
+  return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={displayPortfolioItems(items, type).slice(0, 6)} onOpen={item => { if (hasPortfolioPreviewContent(item)) setActive(item); }} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { if (hasPortfolioPreviewContent(item)) { setArchiveOpen(false); setActive(item); } }} /> : null}</section>;
 }
 
 export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?: PortfolioType; close: () => void; onOpen: (item: PortfolioItem) => void }) {
@@ -279,8 +306,9 @@ export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?
 }
 
 function ArchiveCard({ item, index, onOpen }: { item: PortfolioItem; index: number; onOpen: () => void }) {
+  const canPreview = hasPortfolioPreviewContent(item);
   return <article className={`archive-card${item.title ? '' : ' archive-card-empty'}`}>
-    <div className="archive-card-visual">{item.cover ? <img src={item.cover} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>{item.title ? <button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button> : null}</div>
+    <div className="archive-card-visual">{item.cover ? <img src={mediaPath(item.cover)} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>{canPreview ? <button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button> : null}</div>
     <div className="archive-card-copy"><h3>{item.title || '空白作品位'}</h3></div>
   </article>;
 }
