@@ -13,7 +13,7 @@ type AdminWork = {
   category: string;
   description: string;
   src?: string;
-  cover: string;
+  cover?: string;
 };
 
 type AdminExperience = {
@@ -74,7 +74,13 @@ const defaultAdminConfig: AdminConfig = {
     statement: profile.statement,
   },
   aiSubtitle: '整个网页开发及内容由 Codex、ChatGPT、WorkBuddy 以及豆包共同完成',
-  works: works.map(({ title, category, description, src, cover }) => ({ title, category, description, src, cover })),
+  works: works.map((work) => ({
+    title: work.title,
+    category: work.category,
+    description: work.description,
+    src: work.src,
+    cover: (work as { cover?: string }).cover,
+  })),
   experience: experience.map(({ company, role, period, keyword, summary }) => ({ company, role, period, keyword, summary })),
   skills: skillMatrix.map(({ label, axis, detail }) => ({ label, axis, detail })),
   siteText: {

@@ -51,7 +51,6 @@ export const works = [
     description: '产品卖点与视觉展示短片',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-1.webp',
   },
   {
     title: '产品展示（外贸版）',
@@ -59,7 +58,6 @@ export const works = [
     description: '面向外贸场景的产品展示内容',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-2.webp',
   },
   {
     title: '拜年视频',
@@ -67,7 +65,6 @@ export const works = [
     description: '节日氛围向短视频内容',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-3.webp',
   },
   {
     title: '新年祝福类',
@@ -75,7 +72,6 @@ export const works = [
     description: '祝福类内容策划与成片',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-4.webp',
   },
   {
     title: '知识类博主 02',
@@ -83,7 +79,6 @@ export const works = [
     description: '知识口播与账号内容样片',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-5.webp',
   },
   {
     title: '知识类博主',
@@ -91,7 +86,6 @@ export const works = [
     description: '知识类短视频成片展示',
     src: undefined,
     previewSrc: undefined,
-    cover: '/covers/cover-6.webp',
   },
 ];
 
@@ -134,6 +128,5 @@ export const skillMatrix = [
   { label: '新媒体运营', x: 78, y: 70, bodyX: 67, bodyY: 76, axis: '平台 / 运营', detail: '熟悉抖音、小红书、视频号和公众号的内容表达与发布节奏。' },
   { label: '效果迭代', x: 63, y: 82, bodyX: 35, bodyY: 78, axis: '脚步 / 复盘', detail: '根据生成效果和内容要求修改提示词，优化画面方向和信息层级。' },
 ] as const;
-
 
 
