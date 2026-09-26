@@ -4,7 +4,7 @@ type SnakeDirection = 'up' | 'down' | 'left' | 'right';
 type SnakeCell = { x: number; y: number };
 import { ArrowUpRight, Copy, X } from 'lucide-react';
 import { accessCode, aiPortfolio, assetPath, cloudLink, experience, profile, skillMatrix, works } from './data';
-import { PortfolioSection } from './PortfolioRevision';
+import { PortfolioSection, isLegacyStaticCover } from './PortfolioRevision';
 import { PortfolioAdmin } from './PortfolioAdmin';
 import { getAuthSession, isAuthConfigured, signIn, signOut } from './supabaseAuth';
 
@@ -98,11 +98,13 @@ const readAdminConfig = (): AdminConfig => {
     const saved = window.localStorage.getItem(adminStorageKey);
     if (saved) {
       const parsed = JSON.parse(saved) as Partial<AdminConfig>;
+      const worksConfig = parsed.works?.length ? parsed.works : defaultAdminConfig.works;
       return {
         ...defaultAdminConfig,
         ...parsed,
         profile: { ...defaultAdminConfig.profile, ...parsed.profile },
         siteText: { ...defaultAdminConfig.siteText, ...parsed.siteText, eyeReliefLabel: parsed.siteText?.eyeReliefLabel === '缓解眼疲劳' ? '摸鱼小游戏' : (parsed.siteText?.eyeReliefLabel || defaultAdminConfig.siteText.eyeReliefLabel) },
+        works: worksConfig.map(work => ({ ...work, cover: isLegacyStaticCover(work.cover) ? undefined : work.cover })),
         skills: parsed.skills?.length ? parsed.skills : defaultAdminConfig.skills,
       };
     }

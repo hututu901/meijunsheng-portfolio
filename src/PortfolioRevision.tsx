@@ -14,6 +14,11 @@ const legacyStorageKey = 'meijunsheng-revision-portfolio-v2';
 const video = (name: string) => `/videos/${encodeURIComponent(name)}`;
 const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(name)}`;
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
+const legacyStaticCoverPattern = /(?:^|\/)covers\/cover-\d+\.(?:png|webp|jpe?g)(?:[?#].*)?$/i;
+
+export const isLegacyStaticCover = (path?: string) => Boolean(path && legacyStaticCoverPattern.test(path));
+const stripLegacyStaticCover = (item: PortfolioItem): PortfolioItem =>
+  isLegacyStaticCover(item.cover) ? { ...item, cover: undefined } : item;
 
 export const defaultPortfolio: PortfolioItem[] = [
   ...['小何料理机-实际API双语生图提示词', '小何无线蓝牙耳机-商详双语提示词', '小何洁面乳-双语提示词', '小何胶囊咖啡机_商详提示词双语', '小何负离子吹风机_双语提示词', '一次性咖啡杯提示词练习'].map((title, index) => ({ id: `fallback-text-${index + 1}`, type: 'text' as const, title, description: 'AI视觉提示词个人练习' })),
@@ -43,7 +48,7 @@ export const sortPortfolioItems = (items: PortfolioItem[]) => items
 const normalizePortfolio = (items: PortfolioItem[]) => sortPortfolioItems(items.map((item, index) => {
   const migratedTitle = item.type === 'text' && /^文字作品 \d+$/.test(item.title) ? item.title.replace('文字作品', '提示词工程') : item.title;
   const legacyTime = isDefaultItem(item) ? 0 : 1000 + index;
-  return { ...item, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime };
+  return stripLegacyStaticCover({ ...item, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime });
 })).filter(item => !isPlaceholderItem(item));
 
 const blankItems = (type: PortfolioType, count: number, start: number) => Array.from({ length: count }, (_, index) => ({ id: `blank-${type}-${start + index + 1}`, type, title: '', description: '作品尚未上传' }));
@@ -109,7 +114,7 @@ export const readPortfolioAsync = async (): Promise<PortfolioItem[]> => {
   return portfolioCache;
 };
 export const writePortfolio = (items: PortfolioItem[]) => {
-  const ordered = sortPortfolioItems(items);
+  const ordered = normalizePortfolio(items);
   portfolioCache = ordered;
   void persistIndexedPortfolio(ordered);
   try { window.localStorage.setItem(storageKey, JSON.stringify(ordered)); } catch { /* IndexedDB is the primary media store. */ }
