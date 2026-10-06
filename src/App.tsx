@@ -456,7 +456,14 @@ function App() {
 
   const unlockAdmin = async () => {
     if (isAuthConfigured) {
-      try { const session = await signIn(adminEmailInput.trim(), adminPasswordInput); setAuthSession(session); setAdminUnlocked(true); setAdminMode('hub'); setAdminDraft(siteConfig); setAdminNotice('已登录 Supabase 开发者账号'); } catch { setAdminNotice('邮箱或密码不正确'); }
+      if (adminPasswordInput === adminPassword && !adminEmailInput.trim()) {
+        setAdminUnlocked(true);
+        setAdminMode('hub');
+        setAdminDraft(siteConfig);
+        setAdminNotice(authSession ? '已进入开发者后台' : '已进入本地编辑模式');
+        return;
+      }
+      try { const session = await signIn(adminEmailInput.trim(), adminPasswordInput); setAuthSession(session); setAdminUnlocked(true); setAdminMode('hub'); setAdminDraft(siteConfig); setAdminNotice('已登录 Supabase 开发者账号'); } catch { setAdminNotice('邮箱或密码不正确，也可留空邮箱使用管理密码进入'); }
       return;
     }
     if (adminPasswordInput === adminPassword) {

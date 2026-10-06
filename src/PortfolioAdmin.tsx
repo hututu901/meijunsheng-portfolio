@@ -31,6 +31,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
   const touchDragRef = useRef<{ sourceId: string; targetId: string } | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragTargetId, setDragTargetId] = useState<string | null>(null);
+  const canUseCloud = () => isSupabaseConfigured && Boolean(getAuthSession());
   const save = async (next: PortfolioItem[]) => { const ordered = sortPortfolioItems(next); setItems(ordered); if (isSupabaseConfigured && getAuthSession()) { try { await writePortfolioCloud(ordered); setPublishMessage('云端内容已保存。'); } catch { setPublishMessage('本地已保存，但云端保存失败，请检查 Supabase 配置。'); } } else writePortfolio(ordered); };
 
   const chooseTextFile = async (file: File | null) => {
@@ -59,7 +60,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
       const content = await readDocxTextFromFile(file);
       if (!content) { setPublishMessage('未读取到提示词正文，请选择含有文字的 .docx 文件。'); return; }
       const now = Date.now();
-      const remoteFile = isSupabaseConfigured ? await uploadPortfolioFile(file, 'text') : file.name;
+      const remoteFile = canUseCloud() ? await uploadPortfolioFile(file, 'text') : file.name;
       await save(items.map(current => current.id === item.id ? { ...current, file: remoteFile || file.name, documentContent: content, updatedAt: now } : current));
       setPublishMessage(`已更新「${item.title}」的提示词正文。`);
       setMenu(null);
@@ -71,8 +72,8 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     if (type === 'text' && !documentContent) { setPublishMessage('请上传可读取的 .docx 文稿后再发布。'); return; }
     if (!window.confirm('确认发布这件作品？')) return;
     try {
-      const file = isSupabaseConfigured ? (await uploadPortfolioFile(workFile, type) || undefined) : type === 'text' ? workFile.name : await toDataUrl(workFile);
-      const cover = coverFile ? (isSupabaseConfigured ? (await uploadPortfolioFile(coverFile, `${type}/covers`) || undefined) : await toDataUrl(coverFile)) : undefined;
+      const file = canUseCloud() ? (await uploadPortfolioFile(workFile, type) || undefined) : type === 'text' ? workFile.name : await toDataUrl(workFile);
+      const cover = coverFile ? (canUseCloud() ? (await uploadPortfolioFile(coverFile, `${type}/covers`) || undefined) : await toDataUrl(coverFile)) : undefined;
       await save([...items, {
         id: `${type}-${Date.now()}`,
         type,
@@ -94,7 +95,7 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
 
   const changeCover = async (item: PortfolioItem, file?: File) => {
     if (!file) return;
-    const cover = isSupabaseConfigured ? (await uploadPortfolioFile(file, `${item.type}/covers`) || undefined) : await toDataUrl(file);
+    const cover = canUseCloud() ? (await uploadPortfolioFile(file, `${item.type}/covers`) || undefined) : await toDataUrl(file);
     await save(items.map(current => current.id === item.id ? { ...current, cover, updatedAt: Date.now() } : current));
     setMenu(null);
     setPublishMessage(`已更新「${item.title}」的封面。`);
