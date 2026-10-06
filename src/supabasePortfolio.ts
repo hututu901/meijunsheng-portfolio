@@ -60,3 +60,9 @@ export async function deleteCloudPortfolio(id: string) {
   const response = await fetch(`${endpoint}/rest/v1/portfolio_items?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: headers() });
   if (!response.ok) throw new Error(`Supabase delete failed: ${response.status}`);
 }
+
+export async function deleteAllCloudPortfolio() {
+  if (!isSupabaseConfigured || !getAuthSession()) throw new Error('请先登录开发者账号');
+  const response = await fetch(`${endpoint}/rest/v1/portfolio_items?id=not.is.null`, { method: 'DELETE', headers: headers() });
+  if (!response.ok) throw new Error(`Supabase clear failed: ${response.status}`);
+}

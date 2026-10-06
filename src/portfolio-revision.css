@@ -471,3 +471,32 @@
     aspect-ratio: 4 / 3 !important;
   }
 }
+
+/* Empty-state rebuild: every card keeps a visible action surface after the work library is cleared. */
+.showcase-card-action,
+.archive-card-visual > button {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.showcase-card-action.is-disabled,
+.archive-card-visual > button.is-disabled {
+  cursor: default;
+  color: #7f8894;
+  background: #eef1f5 !important;
+  box-shadow: none !important;
+}
+
+.showcase-card-action:disabled,
+.archive-card-visual > button:disabled {
+  pointer-events: none;
+}
+
+.showcase-card-copy h3:empty::before {
+  content: '空白作品位';
+  color: #8e96a1;
+}
+
+.archive-card-empty .archive-card-copy h3 {
+  color: #8e96a1;
+}

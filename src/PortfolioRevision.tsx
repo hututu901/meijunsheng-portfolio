@@ -9,34 +9,19 @@ export type PortfolioType = 'text' | 'image' | 'video';
 export type PortfolioItem = { id: string; type: PortfolioType; title: string; file?: string; cover?: string; preview?: string; description?: string; textPreview?: string; documentContent?: string; createdAt?: number; updatedAt?: number };
 
 const labels: Record<PortfolioType, string> = { text: '提示词工程', image: '图片作品', video: '视频作品' };
-const storageKey = 'meijunsheng-revision-portfolio-v3';
-const legacyStorageKey = 'meijunsheng-revision-portfolio-v2';
-const video = (name: string) => `/videos/${encodeURIComponent(name)}`;
-const videoPreview = (name: string) => `/videos/preview/${encodeURIComponent(name)}`;
+const storageKey = 'meijunsheng-revision-portfolio-v4-empty';
+const retiredStorageKeys = ['meijunsheng-revision-portfolio-v3', 'meijunsheng-revision-portfolio-v2'];
 const mediaPath = (path: string) => /^(data:|blob:|https?:)/i.test(path) ? path : assetPath(path);
 const legacyStaticCoverPattern = /(?:^|\/)covers\/cover-\d+\.(?:png|webp|jpe?g)(?:[?#].*)?$/i;
+const portfolioResetAt = Date.parse('2026-10-06T00:00:00+08:00');
 
 export const isLegacyStaticCover = (path?: string) => Boolean(path && legacyStaticCoverPattern.test(path));
 const stripLegacyStaticCover = (item: PortfolioItem): PortfolioItem =>
   isLegacyStaticCover(item.cover) ? { ...item, cover: undefined } : item;
 
-const promptDocument = (name: string) => `/ai-portfolio/提示词/${encodeURIComponent(name)}`;
-const fallbackVideoWorks = [
-  { title: '产品展示', file: '产品展示.mp4', preview: '产品展示-preview.mp4' },
-  { title: '产品展示（外贸版）', file: '产品展示（外贸版）.mp4', preview: '产品展示（外贸版）-preview.mp4' },
-  { title: '拜年视频', file: '拜年视频.mp4', preview: '拜年视频-preview.mp4' },
-  { title: '新年祝福类', file: '新年祝福类.mp4', preview: '新年祝福类-preview.mp4' },
-  { title: '知识类博主 02', file: '知识类博主 (2).mp4', preview: '知识类博主 (2)-preview.mp4' },
-  { title: '知识类博主', file: '知识类博主.mp4', preview: '知识类博主-preview.mp4' },
-] as const;
+export const defaultPortfolio: PortfolioItem[] = [];
 
-export const defaultPortfolio: PortfolioItem[] = [
-  ...['小何料理机-实际API双语生图提示词', '小何无线蓝牙耳机-商详双语提示词', '小何洁面乳-双语提示词', '小何胶囊咖啡机_商详提示词双语', '小何负离子吹风机_双语提示词', '一次性咖啡杯提示词练习'].map((title, index) => ({ id: `fallback-text-${index + 1}`, type: 'text' as const, title, file: title === '一次性咖啡杯提示词练习' ? promptDocument('咖啡杯提示词.docx') : undefined, description: 'AI视觉提示词个人练习' })),
-  ...['小何料理机-商详', '小何蓝牙耳机-商详', '小何洁面乳-详情页', '胶囊咖啡机-商详', '小何吹风机-商详', '电商详情页视觉练习'].map((title, index) => ({ id: `fallback-image-${index + 1}`, type: 'image' as const, title, cover: `/ai-portfolio/e-commerce/电商详情页-${index + 1}.webp`, description: 'AI视觉内容个人练习' })),
-  ...fallbackVideoWorks.map((work, index) => ({ id: `fallback-video-${index + 1}`, type: 'video' as const, title: work.title, file: video(work.file), preview: videoPreview(work.preview), description: '视频作品个人练习' })),
-];
-
-const isDefaultItem = (item: PortfolioItem) => /^(?:fallback-)?(?:text|image|video)-\d+$/.test(item.id);
+const isDefaultItem = (item: PortfolioItem) => /^fallback-(?:text|image|video)-\d+$/.test(item.id);
 const isBlankItem = (item: PortfolioItem) => /^blank-(?:text|image|video)-\d+$/.test(item.id);
 const fallbackPortfolioById = new Map(defaultPortfolio.map(item => [item.id, item]));
 export const hasPortfolioPreviewContent = (item: PortfolioItem) => {
@@ -46,10 +31,15 @@ export const hasPortfolioPreviewContent = (item: PortfolioItem) => {
   return Boolean(item.file);
 };
 export const isPlaceholderItem = (item: PortfolioItem) => isBlankItem(item);
+const isRetiredPortfolioItem = (item: PortfolioItem) => {
+  if (isPlaceholderItem(item)) return false;
+  if (isDefaultItem(item)) return true;
+  return (item.updatedAt || item.createdAt || 0) < portfolioResetAt;
+};
 const portfolioDbName = 'meijunsheng-portfolio-db';
 const portfolioDbStore = 'portfolio';
-const portfolioDbKey = 'items-v3';
-const legacyPortfolioDbKey = 'items';
+const portfolioDbKey = 'items-v4-empty';
+const retiredPortfolioDbKeys = ['items-v3', 'items'];
 let portfolioCache: PortfolioItem[] | null = null;
 export const sortPortfolioItems = (items: PortfolioItem[]) => items
   .map((item, index) => ({ item, index }))
@@ -71,7 +61,7 @@ const normalizePortfolio = (items: PortfolioItem[]) => sortPortfolioItems(items.
   const migratedTitle = item.type === 'text' && /^文字作品 \d+$/.test(item.title) ? item.title.replace('文字作品', '提示词工程') : item.title;
   const legacyTime = isDefaultItem(item) ? 0 : 1000 + index;
   return stripLegacyStaticCover({ ...hydrated, title: migratedTitle, createdAt: item.createdAt ?? legacyTime, updatedAt: item.updatedAt ?? legacyTime });
-})).filter(item => !isPlaceholderItem(item));
+})).filter(item => !isPlaceholderItem(item) && !isRetiredPortfolioItem(item));
 
 const blankItems = (type: PortfolioType, count: number, start: number) => Array.from({ length: count }, (_, index) => ({ id: `blank-${type}-${start + index + 1}`, type, title: '', description: '作品尚未上传' }));
 export const displayPortfolioItems = (items: PortfolioItem[], type: PortfolioType) => {
@@ -103,13 +93,15 @@ const readIndexedPortfolioByKey = async (key: string): Promise<PortfolioItem[] |
   } catch { return null; }
 };
 const readIndexedPortfolio = async (): Promise<PortfolioItem[] | null> =>
-  await readIndexedPortfolioByKey(portfolioDbKey) || await readIndexedPortfolioByKey(legacyPortfolioDbKey);
+  await readIndexedPortfolioByKey(portfolioDbKey);
 
 const persistIndexedPortfolio = async (items: PortfolioItem[]) => {
   try {
     const db = await openPortfolioDb();
     await new Promise<void>((resolve, reject) => {
-      const request = db.transaction(portfolioDbStore, 'readwrite').objectStore(portfolioDbStore).put(items, portfolioDbKey);
+      const store = db.transaction(portfolioDbStore, 'readwrite').objectStore(portfolioDbStore);
+      retiredPortfolioDbKeys.forEach(key => store.delete(key));
+      const request = store.put(items, portfolioDbKey);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -120,7 +112,8 @@ const persistIndexedPortfolio = async (items: PortfolioItem[]) => {
 export const readPortfolio = (): PortfolioItem[] => {
   if (portfolioCache) return portfolioCache;
   try {
-    const stored = JSON.parse(window.localStorage.getItem(storageKey) || window.localStorage.getItem(legacyStorageKey) || 'null') as PortfolioItem[] | null;
+    retiredStorageKeys.forEach(key => window.localStorage.removeItem(key));
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) || 'null') as PortfolioItem[] | null;
     return normalizePortfolio(stored || defaultPortfolio);
   } catch { return normalizePortfolio(defaultPortfolio); }
 };
@@ -139,7 +132,10 @@ export const writePortfolio = (items: PortfolioItem[]) => {
   const ordered = normalizePortfolio(items);
   portfolioCache = ordered;
   void persistIndexedPortfolio(ordered);
-  try { window.localStorage.setItem(storageKey, JSON.stringify(ordered)); } catch { /* IndexedDB is the primary media store. */ }
+  try {
+    retiredStorageKeys.forEach(key => window.localStorage.removeItem(key));
+    window.localStorage.setItem(storageKey, JSON.stringify(ordered));
+  } catch { /* IndexedDB is the primary media store. */ }
   window.dispatchEvent(new Event('portfolio-change'));
 };
 export const writePortfolioCloud = async (items: PortfolioItem[]) => {
@@ -173,7 +169,7 @@ function ShowcaseCard({ item, index, offset, onOpen, onShift }: { item: Portfoli
     <div className="showcase-card-visual">
       {item.cover ? <img src={mediaPath(item.cover)} alt="" /> : item.type === 'video' && item.preview ? <video src={assetPath(item.preview)} muted loop playsInline preload="metadata" ref={node => { if (node && hovered && offset === 0) void node.play(); if (node && (!hovered || offset !== 0)) { node.pause(); node.currentTime = 0; } }} /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={34} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={34} strokeWidth={1.15} /> : <Play size={34} strokeWidth={1.15} />}</div>}
       <span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>
-      {canPreview ? <button className="showcase-card-action" type="button" onClick={onOpen} tabIndex={offset === 0 ? 0 : -1}>点击预览 <ArrowUpRight size={16} /></button> : null}
+      <button className={`showcase-card-action${canPreview ? '' : ' is-disabled'}`} type="button" onClick={canPreview ? onOpen : undefined} disabled={!canPreview} tabIndex={offset === 0 ? 0 : -1}>{canPreview ? '点击预览' : '等待上传'} {canPreview ? <ArrowUpRight size={16} /> : null}</button>
     </div>
     <div className="showcase-card-copy"><h3>{item.title}</h3></div>
   </article>;
@@ -298,13 +294,13 @@ function PortfolioSectionLegacy({ type, id }: { type: PortfolioType; id: string 
   return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><span>{labels[type]}</span><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><div className="revision-grid">{featured.map((item, index) => <Tile item={item} index={index} key={item.id} onOpen={() => setActive(item)} />)}</div>{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { setArchiveOpen(false); setActive(item); }} /> : null}</section>;
 }
 
-export function PortfolioSection({ type, id }: { type: PortfolioType; id: string }) {
+export function PortfolioSection({ type, id, isActive = false }: { type: PortfolioType; id: string; isActive?: boolean }) {
   const [items, setItems] = useState(readPortfolio);
   const [active, setActive] = useState<PortfolioItem | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   useEffect(() => { const update = async () => setItems(await readPortfolioAsync()); void update(); window.addEventListener('portfolio-change', update); return () => window.removeEventListener('portfolio-change', update); }, []);
   const typed = items.filter(item => item.type === type && !isPlaceholderItem(item));
-  return <section id={id} className={`page revision-portfolio-page revision-page-${type}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={displayPortfolioItems(items, type).slice(0, 6)} onOpen={item => { if (hasPortfolioPreviewContent(item)) setActive(item); }} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { if (hasPortfolioPreviewContent(item)) { setArchiveOpen(false); setActive(item); } }} /> : null}</section>;
+  return <section id={id} className={`page revision-portfolio-page revision-page-${type}${isActive ? ' is-active-page' : ''}`}><header className="revision-portfolio-head"><div><h2>{labels[type]}</h2></div><button type="button" onClick={() => setArchiveOpen(true)}>更多作品 <ArrowUpRight size={17} /></button></header><ShowcaseCarousel items={displayPortfolioItems(items, type).slice(0, 6)} onOpen={item => { if (hasPortfolioPreviewContent(item)) setActive(item); }} />{active ? <Modal item={active} items={typed} close={() => setActive(null)} /> : null}{archiveOpen ? <PortfolioArchive initial={type} close={() => setArchiveOpen(false)} onOpen={item => { if (hasPortfolioPreviewContent(item)) { setArchiveOpen(false); setActive(item); } }} /> : null}</section>;
 }
 
 export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?: PortfolioType; close: () => void; onOpen: (item: PortfolioItem) => void }) {
@@ -339,7 +335,7 @@ export function PortfolioArchive({ initial = 'text', close, onOpen }: { initial?
 function ArchiveCard({ item, index, onOpen }: { item: PortfolioItem; index: number; onOpen: () => void }) {
   const canPreview = hasPortfolioPreviewContent(item);
   return <article className={`archive-card${item.title ? '' : ' archive-card-empty'}`}>
-    <div className="archive-card-visual">{item.cover ? <img src={mediaPath(item.cover)} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span>{canPreview ? <button type="button" onClick={onOpen}>点击预览 <ArrowUpRight size={15} /></button> : null}</div>
+    <div className="archive-card-visual">{item.cover ? <img src={mediaPath(item.cover)} alt="" /> : <div className={`showcase-placeholder showcase-placeholder-${item.type}`}><span>{String(index + 1).padStart(2, '0')}</span>{item.type === 'text' ? <FileText size={30} strokeWidth={1.15} /> : item.type === 'image' ? <Image size={30} strokeWidth={1.15} /> : <Play size={30} strokeWidth={1.15} />}</div>}<span className="showcase-card-number">{String(index + 1).padStart(2, '0')}</span><button className={canPreview ? '' : 'is-disabled'} type="button" onClick={canPreview ? onOpen : undefined} disabled={!canPreview}>{canPreview ? '点击预览' : '等待上传'} {canPreview ? <ArrowUpRight size={15} /> : null}</button></div>
     <div className="archive-card-copy"><h3>{item.title || '空白作品位'}</h3></div>
   </article>;
 }

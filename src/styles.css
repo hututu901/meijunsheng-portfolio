@@ -8136,3 +8136,185 @@ html.is-eye-locked body {
     display: none !important;
   }
 }
+
+/* Stable responsive shell: prevents cross-device drift and keeps mobile pages isolated. */
+@keyframes stablePageIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (min-width: 761px) {
+  .hero-page {
+    width: min(1280px, calc(100vw - 96px)) !important;
+    max-width: 1280px !important;
+    margin: 0 auto !important;
+    grid-template-columns: minmax(0, .98fr) minmax(360px, .86fr) !important;
+    overflow: hidden !important;
+  }
+
+  .hero-copy {
+    min-width: 0 !important;
+    transform: none !important;
+  }
+
+  .hero-copy h1 {
+    max-width: 100% !important;
+    font-size: clamp(4.6rem, 6.4vw, 8.4rem) !important;
+    line-height: .96 !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: normal !important;
+  }
+
+  .hero-portrait {
+    justify-self: end !important;
+    max-width: min(48vw, 620px) !important;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1320px) {
+  .hero-page {
+    width: min(1120px, calc(100vw - 64px)) !important;
+    grid-template-columns: minmax(0, .9fr) minmax(340px, .78fr) !important;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(4rem, 5.8vw, 5.9rem) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-shell.is-unlocked main {
+    min-height: 100svh !important;
+    overflow-x: hidden !important;
+  }
+
+  .site-shell.is-unlocked #home.page:not(.is-active-page),
+  .site-shell.is-unlocked .unlocked-pages > .page:not(.is-active-page) {
+    display: none !important;
+  }
+
+  .site-shell.is-unlocked #home.page.is-active-page {
+    display: grid !important;
+  }
+
+  .site-shell.is-unlocked .unlocked-pages {
+    position: relative !important;
+    min-height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  .site-shell.is-unlocked .unlocked-pages > .page.is-active-page {
+    display: flex !important;
+    min-height: 100svh !important;
+    height: 100svh !important;
+    overflow: hidden !important;
+    animation: stablePageIn .68s cubic-bezier(.2, .72, .16, 1) both;
+  }
+
+  .site-shell.is-unlocked .revision-portfolio-page.is-active-page,
+  .site-shell.is-unlocked .skills-page.is-active-page,
+  .site-shell.is-unlocked .pulse-experience-page.is-active-page,
+  .site-shell.is-unlocked .chat-page.is-active-page {
+    flex-direction: column !important;
+    justify-content: center !important;
+  }
+
+  .site-shell.is-unlocked .about-page.is-active-page {
+    flex-direction: column !important;
+    justify-content: center !important;
+  }
+
+  .site-shell.is-unlocked .eye-page.is-active-page {
+    display: block !important;
+  }
+
+  .site-section-nav {
+    position: fixed !important;
+    z-index: 45 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    padding: max(10px, env(safe-area-inset-top)) 14px 10px !important;
+    border-bottom: 1px solid rgba(17, 24, 39, .06) !important;
+    background: rgba(255, 255, 255, .88) !important;
+    backdrop-filter: blur(18px) !important;
+  }
+
+  .hero-page.is-active-page,
+  .hero-page {
+    grid-template-rows: auto 1fr !important;
+    align-content: center !important;
+    overflow: hidden !important;
+  }
+
+  .hero-copy,
+  .hero-portrait,
+  .about-copy,
+  .about-portrait,
+  .revision-portfolio-head,
+  .showcase-carousel,
+  .wechat-shell {
+    animation: stablePageIn .72s cubic-bezier(.2, .72, .16, 1) both;
+  }
+
+  .hero-copy h1 {
+    letter-spacing: 0 !important;
+  }
+}
+
+/* Production desktop guard: keep the hero headline and portrait inside the viewport on normal laptops. */
+@media (min-width: 761px) {
+  html,
+  body,
+  #root,
+  .site-shell,
+  .site-shell main {
+    max-width: 100vw !important;
+    overflow-x: clip !important;
+  }
+
+  .hero-page {
+    box-sizing: border-box !important;
+    width: min(1280px, calc(100vw - 112px)) !important;
+    max-width: calc(100vw - 112px) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .hero-copy {
+    width: min(640px, 50vw) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    justify-self: start !important;
+  }
+
+  .hero-copy h1 {
+    display: block !important;
+    width: min(100%, 640px) !important;
+    max-width: min(100%, 640px) !important;
+    font-size: clamp(4.2rem, 5.45vw, 6.2rem) !important;
+    line-height: 1.02 !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .hero-portrait {
+    max-width: min(520px, 42vw) !important;
+    overflow: hidden !important;
+    transform: none !important;
+  }
+
+  .hero-portrait img {
+    width: 100% !important;
+    max-width: 100% !important;
+    transform: scale(1.04) translateY(10px) !important;
+  }
+}

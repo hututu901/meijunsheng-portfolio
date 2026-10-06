@@ -66,7 +66,7 @@ type AdminConfig = {
 };
 
 const adminPassword = '749852';
-const adminStorageKey = 'meijunsheng-portfolio-admin-v1';
+const adminStorageKey = 'meijunsheng-portfolio-admin-v2-stable-home';
 const defaultAdminConfig: AdminConfig = {
   profile: {
     name: profile.name,
@@ -656,7 +656,7 @@ function App() {
   return (
     <div className={`site-shell${unlocked ? ' is-unlocked' : ''}`}>
       <main>
-        <section id="home" className="page hero-page">
+        <section id="home" className={`page hero-page${pageIndex === 0 ? ' is-active-page' : ''}`}>
           <div className="hero-copy">
             <span className="folio-index">01 / WORKSPACE</span>
             <p className="micro-copy">{displayText.homeWelcome}</p>
@@ -815,9 +815,9 @@ function App() {
               </div>
             </section>
 
-            <PortfolioSection id="text" type="text" />
-            <PortfolioSection id="images" type="image" />
-            <PortfolioSection id="videos" type="video" />
+            <PortfolioSection id="text" type="text" isActive={pageIndex === 4} />
+            <PortfolioSection id="images" type="image" isActive={pageIndex === 5} />
+            <PortfolioSection id="videos" type="video" isActive={pageIndex === 6} />
 
             <section id="chat" className={`page chat-page${pageIndex === 7 ? ' is-active-page' : ''}${chatIntroPlayed ? ' is-chat-settled' : ''}`}>
               <div className="wechat-shell" aria-label="微信聊天式结束页">

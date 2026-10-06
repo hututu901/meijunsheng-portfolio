@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FileText, Image, Upload, Video, X } from 'lucide-react';
 import { isPlaceholderItem, PortfolioItem, PortfolioType, readPortfolio, readPortfolioAsync, sortPortfolioItems, writePortfolio, writePortfolioCloud } from './PortfolioRevision';
-import { deleteCloudPortfolio, isSupabaseConfigured, uploadPortfolioFile } from './supabasePortfolio';
+import { deleteAllCloudPortfolio, deleteCloudPortfolio, isSupabaseConfigured, uploadPortfolioFile } from './supabasePortfolio';
 import { getAuthSession } from './supabaseAuth';
 import { assetPath } from './data';
 import { readDocxTextFromFile } from './docxText';
@@ -108,6 +108,20 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
     } catch { setPublishMessage('删除失败，云端内容未改变，请稍后重试。'); }
     setMenu(null);
   };
+  const clearAll = async () => {
+    const hasCloudAccess = isSupabaseConfigured && Boolean(getAuthSession());
+    if (!items.length && !hasCloudAccess) { setPublishMessage('作品库已经是空的。'); return; }
+    if (!window.confirm('确认清空全部作品？此操作会移除当前作品数据，保留上传入口等待重新发布。')) return;
+    try {
+      if (hasCloudAccess) await deleteAllCloudPortfolio();
+      writePortfolio([]);
+      setItems([]);
+      setPublishMessage('全部作品已清空。现在可以重新上传新的作品。');
+    } catch {
+      setPublishMessage('清空失败，云端内容未完全改变，请稍后重试。');
+    }
+    setMenu(null);
+  };
   const startDrag = (event: React.DragEvent<HTMLButtonElement>, id: string) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', id); setDragId(id); };
   const drop = (event: React.DragEvent<HTMLButtonElement>, targetId: string) => {
     event.preventDefault();
@@ -175,7 +189,10 @@ export function PortfolioAdmin({ mode }: { mode: 'upload' | 'manage' }) {
 
   return <div className="portfolio-admin portfolio-manage">
     <h3>内容管理</h3>
-    <p>直接拖动作品卡片调整顺序。右键卡片可查看、修改、替换提示词文稿或删除。</p>
+    <div className="portfolio-manage-toolbar">
+      <p>直接拖动作品卡片调整顺序。右键卡片可查看、修改、替换提示词文稿或删除。</p>
+      <button className="portfolio-clear-all" type="button" onClick={() => void clearAll()}>清空全部作品</button>
+    </div>
     {(['text', 'image', 'video'] as PortfolioType[]).map(currentType => <section key={currentType}>
       <h4>{labels[currentType]}</h4>
       <div className="portfolio-manage-grid">{items.filter(item => item.type === currentType && !isPlaceholderItem(item)).map((item, index) => <button key={item.id} data-portfolio-id={item.id} className={`${dragId === item.id ? 'is-dragging' : ''}${dragTargetId === item.id ? ' is-drag-target' : ''}`} draggable onDragStart={event => startDrag(event, item.id)} onDragEnd={() => { setDragId(null); setDragTargetId(null); }} onDragEnter={() => setDragTargetId(item.id)} onDragOver={event => { event.preventDefault(); setDragTargetId(item.id); }} onDrop={event => drop(event, item.id)} onTouchStart={event => touchStart(event, item.id)} onTouchMove={touchMove} onTouchEnd={touchEnd} onContextMenu={event => { event.preventDefault(); setMenu({ item, x: event.clientX, y: event.clientY }); }}>

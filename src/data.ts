@@ -44,79 +44,15 @@ export const experience = [
   },
 ];
 
-export const works = [
-  {
-    title: '产品展示',
-    category: 'Product Film',
-    description: '产品卖点与视觉展示短片',
-    src: undefined,
-    previewSrc: undefined,
-  },
-  {
-    title: '产品展示（外贸版）',
-    category: 'Export Version',
-    description: '面向外贸场景的产品展示内容',
-    src: undefined,
-    previewSrc: undefined,
-  },
-  {
-    title: '拜年视频',
-    category: 'Festival',
-    description: '节日氛围向短视频内容',
-    src: undefined,
-    previewSrc: undefined,
-  },
-  {
-    title: '新年祝福类',
-    category: 'Campaign',
-    description: '祝福类内容策划与成片',
-    src: undefined,
-    previewSrc: undefined,
-  },
-  {
-    title: '知识类博主 02',
-    category: 'Knowledge',
-    description: '知识口播与账号内容样片',
-    src: undefined,
-    previewSrc: undefined,
-  },
-  {
-    title: '知识类博主',
-    category: 'Creator',
-    description: '知识类短视频成片展示',
-    src: undefined,
-    previewSrc: undefined,
-  },
-];
+export const works: Array<{ title: string; category: string; description: string; src?: string; previewSrc?: string; cover?: string }> = [];
 
 export const cloudLink = 'https://pan.baidu.com/s/1eKn2DwjtR7o2XwmrK3_6tQ?pwd=sey4';
 
 export const aiPortfolio = {
-  detailImages: [
-    '/ai-portfolio/e-commerce/电商详情页-1.webp',
-    '/ai-portfolio/e-commerce/电商详情页-2.webp',
-    '/ai-portfolio/e-commerce/电商详情页-3.webp',
-    '/ai-portfolio/e-commerce/电商详情页-4.webp',
-    '/ai-portfolio/e-commerce/电商详情页-5.webp',
-    '/ai-portfolio/e-commerce/电商详情页-6.webp',
-  ],
-  promptFile: '/ai-portfolio/提示词/咖啡杯提示词.docx',
-  articleImage: '/ai-portfolio/article/公众号推文图.webp',
-  promptPreview: [
-    '一次性咖啡杯详情页提示词审核稿 v3',
-    '本版为带标题文案和副标题文案直接生图版',
-    '执行原则',
-    '每一屏提示词直接包含标题文案和副标题文案',
-    '不再使用无字底图逻辑',
-    '参考图负责风格，白底图负责产品结构锁定',
-    '第 1 屏：双层加厚 热饮外带更安心',
-    '第 2 屏：加厚加硬 隔热防烫',
-    '第 3 屏：商用外带 多场景适用',
-    '第 4 屏：简约杯型 质感在线',
-    '第 5 屏：挺括不易软塌 外带更稳',
-    '第 6 屏：商用热饮外带杯 常备更省心',
-    '正式提示词：保持白色纸杯、黑色塑料杯盖与牛皮纸隔热杯套结构一致，延续暖棕色咖啡馆商业详情页风格，文字清晰自然，不要 logo、不要水印、不要乱码。',
-  ],
+  detailImages: [],
+  promptFile: '',
+  articleImage: '',
+  promptPreview: [],
 } as const;
 export const skillMatrix = [
   { label: 'AI视觉创作', x: 28, y: 18, bodyX: 56, bodyY: 15, axis: '头脑 / 构思', detail: '围绕产品特点构思画面、风格、场景和信息表达方式。' },
@@ -128,5 +64,4 @@ export const skillMatrix = [
   { label: '新媒体运营', x: 78, y: 70, bodyX: 67, bodyY: 76, axis: '平台 / 运营', detail: '熟悉抖音、小红书、视频号和公众号的内容表达与发布节奏。' },
   { label: '效果迭代', x: 63, y: 82, bodyX: 35, bodyY: 78, axis: '脚步 / 复盘', detail: '根据生成效果和内容要求修改提示词，优化画面方向和信息层级。' },
 ] as const;
-
 
